@@ -8,8 +8,8 @@ import type {
 const PRECO_BASE_M2: Record<TipoServico, number> = {
   pintura_simples: 25,
   preparacao_superficie: 18,
-  pintura_decorativa: 60,
-  acabamento_especial: 110,
+  pintura_decorativa: 90,
+  acabamento_especial: 250,
 };
 
 const MULTIPLICADOR_COMPLEXIDADE: Record<Complexidade, number> = {

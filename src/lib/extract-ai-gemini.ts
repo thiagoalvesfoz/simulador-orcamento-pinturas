@@ -30,7 +30,7 @@ export async function extrairComGemini(
     throw new Error("GEMINI_API_KEY não configurada.");
   }
 
-  const modelo = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+  const modelo = process.env.GEMINI_MODEL || "gemini-2.5-flash";
   const ai = new GoogleGenAI({ apiKey });
 
   const resposta = await ai.models.generateContent({
