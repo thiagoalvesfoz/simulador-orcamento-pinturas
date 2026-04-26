@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(npx *)",
+      "Bash(mkdir -p /d/workspace-higor/docs)",
+      "Bash(mv /d/workspace-higor/documento_requisitos_orcamento_pintura_mvp.pdf /d/workspace-higor/docs/)"
+    ]
+  }
+}
