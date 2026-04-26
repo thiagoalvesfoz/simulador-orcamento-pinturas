@@ -1,65 +1,103 @@
-import Image from "next/image";
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import VozRecorder from "@/components/VozRecorder";
+import { salvarOrcamento } from "@/lib/storage";
 
 export default function Home() {
+  const router = useRouter();
+  const [descricao, setDescricao] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  async function aoEnviar(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setErro(null);
+
+    const texto = descricao.trim();
+    if (texto.length < 10) {
+      setErro("Descreva o serviço com pelo menos 10 caracteres.");
+      return;
+    }
+
+    setEnviando(true);
+    try {
+      const resposta = await fetch("/api/analisar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ descricao: texto }),
+      });
+
+      if (!resposta.ok) {
+        throw new Error("Falha ao analisar a descrição.");
+      }
+
+      const dados = await resposta.json();
+      salvarOrcamento({ descricao: texto, dados });
+      router.push("/revisao");
+    } catch (err) {
+      setErro(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível processar a descrição."
+      );
+      setEnviando(false);
+    }
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main className="flex flex-1 flex-col items-center px-4 py-10">
+      <div className="w-full max-w-2xl">
+        <header className="mb-8">
+          <h1 className="text-3xl font-bold tracking-tight">
+            Orçamento de Pintura
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="mt-2 text-zinc-600 dark:text-zinc-400">
+            Descreva o serviço que será executado. A IA vai sugerir uma faixa
+            de preço para você revisar.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+        </header>
+
+        <form onSubmit={aoEnviar} className="space-y-4">
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <label htmlFor="descricao" className="block text-sm font-medium">
+                Descrição do serviço
+              </label>
+              <VozRecorder
+                onTranscricao={setDescricao}
+                desabilitado={enviando}
+              />
+            </div>
+            <textarea
+              id="descricao"
+              name="descricao"
+              rows={8}
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              placeholder="Ex.: Pintura interna de uma sala de 30m² com paredes em bom estado, duas demãos de tinta acrílica."
+              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base shadow-sm outline-none transition focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:border-zinc-100 dark:focus:ring-zinc-100/10"
+              disabled={enviando}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            <p className="mt-1 text-xs text-zinc-500">
+              Você pode digitar ou ditar a descrição (Chrome/Edge).
+            </p>
+          </div>
+
+          {erro && (
+            <p className="text-sm text-red-600 dark:text-red-400">{erro}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={enviando}
+            className="w-full rounded-lg bg-zinc-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
           >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+            {enviando ? "Analisando..." : "Gerar orçamento"}
+          </button>
+        </form>
+      </div>
+    </main>
   );
 }
