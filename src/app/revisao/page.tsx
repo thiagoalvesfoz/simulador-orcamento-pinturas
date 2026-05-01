@@ -211,23 +211,21 @@ export default function RevisaoPage() {
             {formatadorBRL.format(dados.faixa_preco_max)}
           </p>
 
-          <div className="mt-4">
-            <label
-              htmlFor="valor_final"
-              className="block text-sm font-medium mb-1"
-            >
-              Valor final
-            </label>
-            <input
-              id="valor_final"
-              type="number"
-              min={0}
-              step={10}
-              value={dados.valor_final}
-              onChange={(e) =>
-                atualizar({ valor_final: Number(e.target.value) || 0 })
-              }
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-base font-semibold dark:border-zinc-700 dark:bg-zinc-900"
+          <div className="mt-6">
+            <div className="flex items-baseline justify-between mb-2">
+              <label htmlFor="valor_final" className="text-sm font-medium">
+                Valor final
+              </label>
+              <span className="text-2xl font-bold tabular-nums">
+                {formatadorBRL.format(dados.valor_final)}
+              </span>
+            </div>
+
+            <SliderValor
+              min={dados.faixa_preco_min}
+              max={dados.faixa_preco_max}
+              valor={dados.valor_final}
+              onChange={(v) => atualizar({ valor_final: v })}
             />
           </div>
         </section>
@@ -264,6 +262,54 @@ function Campo({
     <div>
       <label className="block text-sm font-medium mb-1">{label}</label>
       {children}
+    </div>
+  );
+}
+
+function SliderValor({
+  min,
+  max,
+  valor,
+  onChange,
+}: {
+  min: number;
+  max: number;
+  valor: number;
+  onChange: (v: number) => void;
+}) {
+  const sliderMin = Math.max(0, Math.round(min * 0.5));
+  const sliderMax = Math.round(max * 1.5);
+  const range = sliderMax - sliderMin;
+  const pctMin = range > 0 ? ((min - sliderMin) / range) * 100 : 0;
+  const pctMax = range > 0 ? ((max - sliderMin) / range) * 100 : 100;
+
+  return (
+    <div>
+      <div className="relative">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute top-1/2 left-0 right-0 h-1 -translate-y-1/2 rounded-full bg-zinc-200 dark:bg-zinc-800"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-zinc-400 dark:bg-zinc-600"
+          style={{ left: `${pctMin}%`, right: `${100 - pctMax}%` }}
+        />
+        <input
+          id="valor_final"
+          type="range"
+          min={sliderMin}
+          max={sliderMax}
+          step={10}
+          value={Math.min(Math.max(valor, sliderMin), sliderMax)}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="relative w-full appearance-none bg-transparent cursor-pointer h-6 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-zinc-900 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow dark:[&::-webkit-slider-thumb]:bg-zinc-100 dark:[&::-webkit-slider-thumb]:border-zinc-900 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-zinc-900 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white dark:[&::-moz-range-thumb]:bg-zinc-100"
+        />
+      </div>
+      <div className="mt-2 flex justify-between text-xs text-zinc-500">
+        <span>{formatadorBRL.format(sliderMin)}</span>
+        <span>{formatadorBRL.format(sliderMax)}</span>
+      </div>
     </div>
   );
 }
