@@ -103,7 +103,7 @@ export default function Home() {
             <h2 className="mt-5 font-extrabold leading-tight tracking-tight text-white text-3xl sm:text-4xl">
               Orçamentos profissionais
               <br />
-              <span className="text-cyan-400">em segundos</span>
+              <span className="text-brand-400">em segundos</span>
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-zinc-400 sm:text-base">
               Descreva o serviço com suas palavras e a IA monta o orçamento,
@@ -136,7 +136,7 @@ export default function Home() {
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
               placeholder="Ex: Preciso pintar uma casa de 70 metros, com massa corrida em dois quartos, tinta premium, em 3 dias."
-              className="w-full resize-none rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20"
+              className="w-full resize-none rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
               disabled={enviando}
             />
 
@@ -144,7 +144,7 @@ export default function Home() {
               type="submit"
               disabled={enviando}
               aria-live="polite"
-              className="mt-4 flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-cyan-400 px-5 py-3.5 text-sm font-semibold text-zinc-950 shadow-lg shadow-cyan-400/20 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-80"
+              className="mt-4 flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-brand-400 px-5 py-3.5 text-sm font-semibold text-zinc-950 shadow-lg shadow-brand-400/20 transition hover:bg-brand-300 disabled:cursor-not-allowed disabled:opacity-80"
             >
               {enviando ? (
                 <div className="flex items-center gap-2 fade-in animate-pulse slide-in-from-bottom-1 duration-300">
@@ -183,7 +183,7 @@ export default function Home() {
                 type="button"
                 onClick={() => setDescricao(EXEMPLOS[exemploIdx])}
                 disabled={enviando}
-                className="block w-full overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950/40 px-3 py-2.5 text-left text-xs leading-relaxed text-zinc-300 transition-colors hover:border-cyan-400/40 hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-60"
+                className="block w-full overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950/40 px-3 py-2.5 text-left text-xs leading-relaxed text-zinc-300 transition-colors hover:border-brand-400/40 hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span
                   className={
@@ -203,7 +203,7 @@ export default function Home() {
                 key={passo.numero}
                 className="flex flex-col items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/40 px-3 py-4"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-400 text-sm font-bold text-zinc-950">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-400 text-sm font-bold text-zinc-950">
                   {passo.numero}
                 </span>
                 <span className="text-xs font-semibold text-white">
