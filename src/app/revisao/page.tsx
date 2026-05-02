@@ -41,7 +41,7 @@ export default function RevisaoPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRascunho(carregado);
     setCarregando(false);
-    toast.success("Dados extraídos com sucesso!", { id: "revisao-extraido" });
+    toast.success("Orçamento pronto para revisão", { id: "revisao-extraido" });
   }, [router]);
 
   const dados = rascunho?.dados;
