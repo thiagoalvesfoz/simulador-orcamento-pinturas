@@ -180,7 +180,7 @@ export default function RevisaoPage() {
                       area_m2: Math.max(1, Number(e.target.value) || 0),
                     })
                   }
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20"
+                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20"
                 />
               </Campo>
 
@@ -210,8 +210,8 @@ export default function RevisaoPage() {
                       className={
                         "rounded-full border px-4 py-1.5 text-xs font-medium transition " +
                         (ativo
-                          ? "border-cyan-500 bg-cyan-500 text-zinc-950"
-                          : "border-zinc-700 bg-transparent text-zinc-200 hover:border-cyan-500/60 hover:text-white")
+                          ? "border-cyan-400 bg-cyan-400 text-zinc-950"
+                          : "border-zinc-700 bg-transparent text-zinc-200 hover:border-cyan-400/60 hover:text-white")
                       }
                     >
                       {FATORES_LABEL[f]}
@@ -274,7 +274,7 @@ export default function RevisaoPage() {
               type="button"
               onClick={aoGerarPdf}
               disabled={baixando}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-cyan-500 px-5 py-3.5 text-sm font-semibold text-zinc-950 shadow-lg shadow-cyan-500/20 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-cyan-400 px-5 py-3.5 text-sm font-semibold text-zinc-950 shadow-lg shadow-cyan-400/20 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -329,7 +329,7 @@ function SelectDark({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full appearance-none rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 pr-10 text-sm text-zinc-100 outline-none transition focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20"
+        className="w-full appearance-none rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 pr-10 text-sm text-zinc-100 outline-none transition focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value} className="bg-zinc-900">
@@ -380,7 +380,7 @@ function SliderValor({
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-cyan-500"
+          className="pointer-events-none absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-cyan-400"
           style={{ left: `${pctMin}%`, right: `${100 - pctMax}%` }}
         />
         <input
@@ -391,7 +391,7 @@ function SliderValor({
           step={10}
           value={Math.min(Math.max(valor, sliderMin), sliderMax)}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="relative w-full appearance-none bg-transparent cursor-pointer h-5 [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-cyan-500 [&::-webkit-slider-thumb]:shadow [&::-webkit-slider-thumb]:-mt-[7px] [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-transparent [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-cyan-500"
+          className="relative w-full appearance-none bg-transparent cursor-pointer h-5 [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-cyan-400 [&::-webkit-slider-thumb]:shadow [&::-webkit-slider-thumb]:-mt-[7px] [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-transparent [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-cyan-400"
         />
       </div>
       <div className="mt-2 flex justify-between text-xs text-zinc-500 tabular-nums">

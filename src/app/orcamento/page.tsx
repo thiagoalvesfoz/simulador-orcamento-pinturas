@@ -55,7 +55,7 @@ export default function OrcamentoPage() {
         <div className="w-full max-w-xl">
           <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur sm:p-6">
             <div className="flex items-start gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cyan-500 text-zinc-950">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cyan-400 text-zinc-950">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -96,7 +96,7 @@ export default function OrcamentoPage() {
                       {item.descricao}
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-lg bg-cyan-500/10 px-3 py-1.5 text-sm font-bold text-cyan-300 tabular-nums">
+                  <span className="shrink-0 rounded-lg bg-cyan-400/10 px-3 py-1.5 text-sm font-bold text-cyan-300 tabular-nums">
                     {formatadorBRL.format(item.valor)}
                   </span>
                 </li>
@@ -105,7 +105,7 @@ export default function OrcamentoPage() {
 
             <div className="my-5 border-t border-zinc-800" />
 
-            <div className="relative overflow-hidden rounded-xl bg-cyan-500 p-5 text-zinc-950">
+            <div className="relative overflow-hidden rounded-xl bg-cyan-400 p-5 text-zinc-950">
               <div className="relative z-10">
                 <p className="text-xs font-medium opacity-80">Total Estimado</p>
                 <p className="mt-1 text-3xl font-extrabold tabular-nums">

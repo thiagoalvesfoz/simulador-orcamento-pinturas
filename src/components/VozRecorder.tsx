@@ -149,14 +149,14 @@ export default function VozRecorder({
           className={
             "relative inline-flex h-8 w-8 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-60 " +
             (gravando
-              ? "bg-cyan-500 text-zinc-950"
+              ? "bg-cyan-400 text-zinc-950"
               : "text-cyan-400 hover:bg-cyan-400/10")
           }
         >
           {gravando && (
             <span
               aria-hidden
-              className="pointer-events-none absolute inset-0 animate-ping rounded-full bg-cyan-500 opacity-75"
+              className="pointer-events-none absolute inset-0 animate-ping rounded-full bg-cyan-400 opacity-75"
             />
           )}
           <svg
