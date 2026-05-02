@@ -1,175 +1,156 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { carregarOrcamento, limparOrcamento } from "@/lib/storage";
-import {
-  COMPLEXIDADES_LABEL,
-  FATORES_LABEL,
-  TIPOS_SERVICO_LABEL,
-  type RascunhoOrcamento,
-} from "@/lib/types";
+import { useEffect } from "react";
+import { toast } from "sonner";
+import Header from "@/components/Header";
+import { limparOrcamento } from "@/lib/storage";
 
 const formatadorBRL = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
 });
 
+const ITENS_MOCK = [
+  {
+    titulo: "Tinta acrílica premium",
+    descricao: "3 latas de 18L",
+    valor: 450,
+  },
+  {
+    titulo: "Mão de obra",
+    descricao: "2 pintores por 3 dias",
+    valor: 1800,
+  },
+  {
+    titulo: "Materiais (rolos, pincéis, fitas)",
+    descricao: "Kit completo",
+    valor: 250,
+  },
+  {
+    titulo: "Preparação de superfície",
+    descricao: "30m²",
+    valor: 300,
+  },
+];
+
+const TOTAL_MOCK = 750;
+
 export default function OrcamentoPage() {
   const router = useRouter();
-  const [rascunho, setRascunho] = useState<RascunhoOrcamento | null>(null);
-  const [baixando, setBaixando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
-    const carregado = carregarOrcamento();
-    if (!carregado) {
-      router.replace("/");
-      return;
-    }
-    setRascunho(carregado);
-  }, [router]);
-
-  async function baixarPdf() {
-    if (!rascunho) return;
-    setErro(null);
-    setBaixando(true);
-    try {
-      const resposta = await fetch("/api/gerar-pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(rascunho),
-      });
-      if (!resposta.ok) {
-        throw new Error("Falha ao gerar PDF.");
-      }
-      const blob = await resposta.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "orcamento.pdf";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      setErro(err instanceof Error ? err.message : "Erro ao gerar PDF.");
-    } finally {
-      setBaixando(false);
-    }
-  }
+    toast.success("Orçamento gerado com sucesso!", { id: "orcamento-gerado" });
+  }, []);
 
   function novoOrcamento() {
     limparOrcamento();
     router.push("/");
   }
 
-  if (!rascunho) {
-    return (
-      <main className="flex flex-1 items-center justify-center">
-        <p className="text-zinc-500">Carregando...</p>
-      </main>
-    );
-  }
-
-  const { dados } = rascunho;
-  const fatoresTexto =
-    dados.fatores.length > 0
-      ? dados.fatores.map((f) => FATORES_LABEL[f]).join(", ")
-      : "Nenhum";
-
   return (
-    <main className="flex flex-1 flex-col items-center px-4 py-10">
-      <div className="w-full max-w-2xl space-y-6">
-        <header>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Orçamento pronto
-          </h1>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-            Confira o resumo e faça o download em PDF.
-          </p>
-        </header>
+    <>
+      <Header />
+      <main className="flex flex-1 flex-col items-center px-4 py-8 sm:py-10">
+        <div className="w-full max-w-xl">
+          <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur sm:p-6">
+            <div className="flex items-start gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cyan-500 text-zinc-950">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5"
+                >
+                  <line x1="12" y1="2" x2="12" y2="22" />
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+              </span>
+              <div>
+                <h2 className="text-2xl font-extrabold tracking-tight text-white">
+                  Orçamento Estimado
+                </h2>
+                <p className="mt-0.5 text-sm text-zinc-400">
+                  Valores baseados na descrição fornecida
+                </p>
+              </div>
+            </div>
 
-        <section className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-zinc-500">
-                Tipo
-              </dt>
-              <dd className="mt-1 text-sm font-medium">
-                {TIPOS_SERVICO_LABEL[dados.tipo]}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-zinc-500">
-                Área
-              </dt>
-              <dd className="mt-1 text-sm font-medium">{dados.area_m2} m²</dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-zinc-500">
-                Complexidade
-              </dt>
-              <dd className="mt-1 text-sm font-medium">
-                {COMPLEXIDADES_LABEL[dados.complexidade]}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-zinc-500">
-                Fatores
-              </dt>
-              <dd className="mt-1 text-sm font-medium">{fatoresTexto}</dd>
-            </div>
-          </dl>
+            <div className="my-5 border-t border-zinc-800" />
 
-          <div className="mt-6 border-t border-zinc-200 pt-4 dark:border-zinc-800">
-            <p className="text-xs uppercase tracking-wide text-zinc-500">
-              Faixa sugerida
+            <ul className="space-y-3">
+              {ITENS_MOCK.map((item) => (
+                <li
+                  key={item.titulo}
+                  className="flex items-start justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950/50 p-4"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-white">
+                      {item.titulo}
+                    </p>
+                    <p className="mt-0.5 text-xs text-zinc-400">
+                      {item.descricao}
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-lg bg-cyan-500/10 px-3 py-1.5 text-sm font-bold text-cyan-300 tabular-nums">
+                    {formatadorBRL.format(item.valor)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="my-5 border-t border-zinc-800" />
+
+            <div className="relative overflow-hidden rounded-xl bg-cyan-500 p-5 text-zinc-950">
+              <div className="relative z-10">
+                <p className="text-xs font-medium opacity-80">Total Estimado</p>
+                <p className="mt-1 text-3xl font-extrabold tabular-nums">
+                  {formatadorBRL.format(TOTAL_MOCK)}
+                </p>
+              </div>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="absolute right-4 top-1/2 h-12 w-12 -translate-y-1/2 opacity-70"
+                aria-hidden
+              >
+                <path d="M12 2 14.09 8.26 20.5 9 15.5 13.5 17 20 12 16.77 7 20l1.5-6.5L3.5 9l6.41-.74L12 2z" />
+              </svg>
+            </div>
+
+            <p className="mt-5 text-center text-xs text-zinc-400">
+              Este é um orçamento estimado. Os valores podem variar conforme
+              as condições reais do serviço.
             </p>
-            <p className="mt-1 text-sm">
-              {formatadorBRL.format(dados.faixa_preco_min)} —{" "}
-              {formatadorBRL.format(dados.faixa_preco_max)}
-            </p>
-          </div>
 
-          <div className="mt-4 rounded-md bg-zinc-900 px-4 py-3 text-white dark:bg-zinc-100 dark:text-zinc-900 flex items-center justify-between">
-            <span className="text-sm font-semibold">Valor final</span>
-            <span className="text-xl font-bold">
-              {formatadorBRL.format(dados.valor_final)}
-            </span>
-          </div>
-        </section>
-
-        {erro && (
-          <p className="text-sm text-red-600 dark:text-red-400">{erro}</p>
-        )}
-
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <button
-            type="button"
-            onClick={() => router.push("/revisao")}
-            className="flex-1 rounded-lg border border-zinc-300 bg-white px-5 py-3 text-sm font-medium hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800"
-          >
-            Voltar e editar
-          </button>
-          <button
-            type="button"
-            onClick={baixarPdf}
-            disabled={baixando}
-            className="flex-1 rounded-lg bg-zinc-900 px-5 py-3 text-sm font-semibold text-white hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-          >
-            {baixando ? "Gerando..." : "Baixar PDF"}
-          </button>
+            <button
+              type="button"
+              onClick={novoOrcamento}
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/60 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-zinc-800"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4"
+              >
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+              Criar novo orçamento
+            </button>
+          </section>
         </div>
-
-        <button
-          type="button"
-          onClick={novoOrcamento}
-          className="w-full text-center text-sm text-zinc-500 underline-offset-4 hover:underline"
-        >
-          Novo orçamento
-        </button>
-      </div>
-    </main>
+      </main>
+    </>
   );
 }

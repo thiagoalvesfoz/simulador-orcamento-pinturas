@@ -1,26 +1,73 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Loader2Icon } from "lucide-react";
+import { toast } from "sonner";
+import BadgeIA from "@/components/BadgeIA";
+import Header from "@/components/Header";
 import VozRecorder from "@/components/VozRecorder";
 import { salvarOrcamento } from "@/lib/storage";
+
+const EXEMPLOS = [
+  "Preciso pintar uma casa de 70 metros, fazer massa corrida em dois quartos, usar tinta premium, terminar em 3 dias.",
+  "Pintura de fachada de 90 m² com textura, tinta para área externa, prazo de 1 semana.",
+  "Pintar sala e quarto, 45 metros, com massa corrida, tinta acrílica comum.",
+];
+
+const PASSOS = [
+  { numero: 1, titulo: "Descreva" },
+  { numero: 2, titulo: "IA monta" },
+  { numero: 3, titulo: "Recebe PDF" },
+];
+
+const FRASES_PENSANDO = [
+  "Analisando sua descrição...",
+  "Identificando tipo de serviço...",
+  "Calculando área e materiais...",
+  "Estimando faixa de preço...",
+  "Montando seu orçamento...",
+];
 
 export default function Home() {
   const router = useRouter();
   const [descricao, setDescricao] = useState("");
   const [enviando, setEnviando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  const [fraseIdx, setFraseIdx] = useState(0);
+  const [exemploIdx, setExemploIdx] = useState(0);
+
+  useEffect(() => {
+    if (!enviando) return;
+    const interval = setInterval(() => {
+      setFraseIdx((i) => (i + 1) % FRASES_PENSANDO.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [enviando]);
+
+  const [exemploVisivel, setExemploVisivel] = useState(true);
+
+  useEffect(() => {
+    const FADE_MS = 400;
+    const interval = setInterval(() => {
+      setExemploVisivel(false);
+      setTimeout(() => {
+        setExemploIdx((i) => (i + 1) % EXEMPLOS.length);
+        setExemploVisivel(true);
+      }, FADE_MS);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   async function aoEnviar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setErro(null);
 
     const texto = descricao.trim();
     if (texto.length < 10) {
-      setErro("Descreva o serviço com pelo menos 10 caracteres.");
+      toast.error("Descreva o serviço com pelo menos 10 caracteres.");
       return;
     }
 
+    setFraseIdx(0);
     setEnviando(true);
     try {
       const resposta = await fetch("/api/analisar", {
@@ -37,7 +84,7 @@ export default function Home() {
       salvarOrcamento({ descricao: texto, dados });
       router.push("/revisao");
     } catch (err) {
-      setErro(
+      toast.error(
         err instanceof Error
           ? err.message
           : "Não foi possível processar a descrição."
@@ -47,57 +94,126 @@ export default function Home() {
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center px-4 py-10">
-      <div className="w-full max-w-2xl">
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">
-            Orçamento de Pintura
-          </h1>
-          <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-            Descreva o serviço que será executado. A IA vai sugerir uma faixa
-            de preço para você revisar.
-          </p>
-        </header>
+    <>
+      <Header />
+      <main className="flex flex-1 flex-col items-center px-4 py-8 sm:py-12">
+        <div className="w-full max-w-xl">
+          <section className="mb-10 text-center">
+            <BadgeIA />
+            <h2 className="mt-5 font-extrabold leading-tight tracking-tight text-white text-3xl sm:text-4xl">
+              Orçamentos profissionais
+              <br />
+              <span className="text-cyan-400">em segundos</span>
+            </h2>
+            <p className="mt-4 text-sm leading-relaxed text-zinc-400 sm:text-base">
+              Descreva o serviço com suas palavras e a IA monta o orçamento,
+              calcula o valor e gera o resultado.
+            </p>
+          </section>
 
-        <form onSubmit={aoEnviar} className="space-y-4">
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <label htmlFor="descricao" className="block text-sm font-medium">
-                Descrição do serviço
+          <form
+            onSubmit={aoEnviar}
+            className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur sm:p-6"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <label
+                htmlFor="descricao"
+                className="flex items-center gap-2 text-sm font-semibold text-white"
+              >
+                Descreva o serviço
               </label>
               <VozRecorder
+                variant="icon"
                 onTranscricao={setDescricao}
                 desabilitado={enviando}
               />
             </div>
+
             <textarea
               id="descricao"
               name="descricao"
-              rows={8}
+              rows={10}
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
-              placeholder="Ex.: Pintura interna de uma sala de 30m² com paredes em bom estado, duas demãos de tinta acrílica."
-              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base shadow-sm outline-none transition focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:border-zinc-100 dark:focus:ring-zinc-100/10"
+              placeholder="Ex: Preciso pintar uma casa de 70 metros, com massa corrida em dois quartos, tinta premium, em 3 dias."
+              className="w-full resize-none rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20"
               disabled={enviando}
             />
-            <p className="mt-1 text-xs text-zinc-500">
-              Você pode digitar ou ditar a descrição (Chrome/Edge).
-            </p>
-          </div>
 
-          {erro && (
-            <p className="text-sm text-red-600 dark:text-red-400">{erro}</p>
-          )}
+            <button
+              type="submit"
+              disabled={enviando}
+              aria-live="polite"
+              className="mt-4 flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-cyan-500 px-5 py-3.5 text-sm font-semibold text-zinc-950 shadow-lg shadow-cyan-500/20 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-80"
+            >
+              {enviando ? (
+                <div className="flex items-center gap-2 fade-in animate-pulse slide-in-from-bottom-1 duration-300">
+                  <Loader2Icon className="h-4 w-4 shrink-0 animate-spin" />
+                  <span
+                    key={fraseIdx}
+                  >
+                    {FRASES_PENSANDO[fraseIdx]}
+                  </span>
+                </div>
+              ) : (
+                <>
+                  Começar meu orçamento agora
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-4 w-4"
+                  >
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <polyline points="12 5 19 12 12 19" />
+                  </svg>
+                </>
+              )}
+            </button>
 
-          <button
-            type="submit"
-            disabled={enviando}
-            className="w-full rounded-lg bg-zinc-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-          >
-            {enviando ? "Analisando..." : "Gerar orçamento"}
-          </button>
-        </form>
-      </div>
-    </main>
+            <div className="mt-6 border-t border-zinc-800 pt-5">
+              <p className="mb-3 text-xs font-medium text-zinc-400">
+                Exemplo rápido:
+              </p>
+              <button
+                type="button"
+                onClick={() => setDescricao(EXEMPLOS[exemploIdx])}
+                disabled={enviando}
+                className="block w-full overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950/40 px-3 py-2.5 text-left text-xs leading-relaxed text-zinc-300 transition-colors hover:border-cyan-500/40 hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <span
+                  className={
+                    "block min-h-[2lh] transition-opacity duration-[400ms] ease-in-out max-[424px]:min-h-[3lh] " +
+                    (exemploVisivel ? "opacity-100" : "opacity-0")
+                  }
+                >
+                  {EXEMPLOS[exemploIdx]}
+                </span>
+              </button>
+            </div>
+          </form>
+
+          <section className="mt-8 grid grid-cols-3 gap-3">
+            {PASSOS.map((passo) => (
+              <div
+                key={passo.numero}
+                className="flex flex-col items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/40 px-3 py-4"
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-500 text-sm font-bold text-zinc-950">
+                  {passo.numero}
+                </span>
+                <span className="text-xs font-semibold text-white">
+                  {passo.titulo}
+                </span>
+              </div>
+            ))}
+          </section>
+        </div>
+      </main>
+    </>
   );
 }
