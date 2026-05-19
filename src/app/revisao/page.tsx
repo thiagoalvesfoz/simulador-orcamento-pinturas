@@ -233,7 +233,7 @@ export default function RevisaoPage() {
       const file = new File([blob], `orcamento-${numeroGerado}.pdf`, { type: "application/pdf" });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
-          await navigator.share({ files: [file], title: `Orçamento ${numeroGerado}`, text: textoWa });
+          await navigator.share({ files: [file], title: `Orçamento ${numeroGerado}`, text: "Preparei este orçamento para você. Qualquer dúvida, é só chamar!" });
           return;
         } catch (err) {
           if (err instanceof Error && err.name === "AbortError") return;
