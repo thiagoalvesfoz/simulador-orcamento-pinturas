@@ -69,6 +69,7 @@ export type RascunhoOrcamento = {
   observacoes?: string;
   validade_dias?: number;
   perfil?: PerfilPintor;
+  numero_orcamento?: string;
 };
 
 export type DadosExtraidos = {

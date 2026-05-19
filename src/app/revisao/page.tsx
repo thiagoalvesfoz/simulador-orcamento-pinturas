@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import BadgeIA from "@/components/BadgeIA";
 import Header from "@/components/Header";
 import { calcularFaixaPreco } from "@/lib/pricing";
-import { carregarOrcamento, carregarPerfil } from "@/lib/storage";
+import { carregarOrcamento, carregarPerfil, gerarNumeroOrcamento } from "@/lib/storage";
 import {
   COMPLEXIDADES,
   COMPLEXIDADES_LABEL,
@@ -110,6 +110,7 @@ export default function RevisaoPage() {
     setBaixando(true);
     try {
       const perfil = carregarPerfil();
+      const numero = gerarNumeroOrcamento();
       const resposta = await fetch("/api/gerar-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -119,6 +120,7 @@ export default function RevisaoPage() {
           observacoes: observacoes.trim() || undefined,
           validade_dias: validadeDias,
           perfil: perfil ?? undefined,
+          numero_orcamento: numero,
         }),
       });
       if (!resposta.ok) throw new Error("Falha ao gerar PDF.");
@@ -126,7 +128,7 @@ export default function RevisaoPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "orcamento.pdf";
+      a.download = `orcamento-${numero}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

@@ -85,6 +85,10 @@ function validarRascunho(input: unknown): RascunhoOrcamento | null {
         ? obj.validade_dias
         : undefined,
     perfil: validarPerfil(obj.perfil),
+    numero_orcamento:
+      typeof obj.numero_orcamento === "string" && obj.numero_orcamento.trim()
+        ? obj.numero_orcamento.trim()
+        : undefined,
   };
 }
 

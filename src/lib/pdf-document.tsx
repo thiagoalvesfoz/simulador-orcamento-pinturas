@@ -362,6 +362,9 @@ export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
             </Text>
           </View>
           <View>
+            {rascunho.numero_orcamento ? (
+              <Text style={s.headerDateLabel}>{rascunho.numero_orcamento}</Text>
+            ) : null}
             <Text style={s.headerDateLabel}>Emitido em</Text>
             <Text style={s.headerDateValue}>{formatDate(new Date())}</Text>
           </View>
