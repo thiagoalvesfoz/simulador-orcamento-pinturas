@@ -229,55 +229,10 @@ export default function PerfilPage() {
             </p>
           </div>
 
-          <form onSubmit={aoSalvar} className="space-y-4">
-            {/* Identificação */}
-            <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur sm:p-6">
-              <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-zinc-400">
-                Identificação
-              </h3>
-              <div className="space-y-4">
-                <Campo label="Nome completo ou empresa">
-                  <input
-                    className={inputCls}
-                    type="text"
-                    placeholder="Ex: João Silva Pinturas"
-                    value={perfil.nome}
-                    onChange={(e) => set("nome", e.target.value)}
-                  />
-                </Campo>
-                <div className="grid grid-cols-2 gap-4">
-                  <Campo label="Telefone / WhatsApp">
-                    <input
-                      className={inputCls}
-                      type="tel"
-                      placeholder="(11) 99999-9999"
-                      value={perfil.telefone}
-                      onChange={(e) => set("telefone", e.target.value)}
-                    />
-                  </Campo>
-                  <Campo label="Cidade">
-                    <input
-                      className={inputCls}
-                      type="text"
-                      placeholder="São Paulo - SP"
-                      value={perfil.cidade}
-                      onChange={(e) => set("cidade", e.target.value)}
-                    />
-                  </Campo>
-                </div>
-                <Campo label="E-mail">
-                  <input
-                    className={inputCls}
-                    type="email"
-                    placeholder="seuemail@exemplo.com"
-                    value={perfil.email}
-                    onChange={(e) => set("email", e.target.value)}
-                  />
-                </Campo>
-              </div>
-            </section>
+          
 
-            {/* Logo */}
+          <form onSubmit={aoSalvar} className="space-y-4">
+{/* Logo */}
             <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur sm:p-6">
               <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-zinc-400">
                 Logo
@@ -332,6 +287,55 @@ export default function PerfilPage() {
                 onChange={aoSelecionarLogo}
               />
             </section>
+
+            {/* Identificação */}
+            <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur sm:p-6">
+              <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-zinc-400">
+                Seus dados
+              </h3>
+              <div className="space-y-4">
+                <Campo label="Nome completo ou empresa">
+                  <input
+                    className={inputCls}
+                    type="text"
+                    placeholder="Ex: João Silva Pinturas"
+                    value={perfil.nome}
+                    onChange={(e) => set("nome", e.target.value)}
+                  />
+                </Campo>
+                <div className="grid grid-cols-2 gap-4">
+                  <Campo label="Telefone / WhatsApp">
+                    <input
+                      className={inputCls}
+                      type="tel"
+                      placeholder="(11) 99999-9999"
+                      value={perfil.telefone}
+                      onChange={(e) => set("telefone", e.target.value)}
+                    />
+                  </Campo>
+                  <Campo label="Cidade">
+                    <input
+                      className={inputCls}
+                      type="text"
+                      placeholder="São Paulo - SP"
+                      value={perfil.cidade}
+                      onChange={(e) => set("cidade", e.target.value)}
+                    />
+                  </Campo>
+                </div>
+                <Campo label="E-mail">
+                  <input
+                    className={inputCls}
+                    type="email"
+                    placeholder="seuemail@exemplo.com"
+                    value={perfil.email}
+                    onChange={(e) => set("email", e.target.value)}
+                  />
+                </Campo>
+              </div>
+            </section>
+
+            
 
             {/* Condições */}
             <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur sm:p-6">
