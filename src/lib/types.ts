@@ -57,9 +57,7 @@ export type PerfilPintor = {
   email: string;
   cidade: string;
   logo_base64?: string;
-  prazo_dias: number;
-  entrada_percentual: number;
-  validade_dias: number;
+  condicoes: string[];
 };
 
 export type RascunhoOrcamento = {

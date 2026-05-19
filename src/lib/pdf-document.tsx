@@ -327,14 +327,16 @@ function addDays(date: Date, days: number): Date {
 export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
   const { dados, descricao, perfil } = rascunho;
 
-  const prazo = perfil?.prazo_dias ?? 15;
-  const entrada = perfil?.entrada_percentual ?? 20;
-  const validadeDias = rascunho.validade_dias ?? perfil?.validade_dias ?? 20;
+  const validadeDias = rascunho.validade_dias ?? 20;
   const validadeData = formatDate(addDays(new Date(), validadeDias));
 
+  const defaultCondicoes = [
+    "O prazo para finalização dos serviços é de 15 dias úteis.",
+    "Para início do trabalho recebemos 20% do valor antecipado.",
+  ];
+
   const terms = [
-    `O prazo para finalização dos serviços é de ${prazo} dias úteis.`,
-    `Para início do trabalho recebemos ${entrada}% do valor antecipado.`,
+    ...(perfil?.condicoes?.length ? perfil.condicoes : defaultCondicoes),
     `Este orçamento tem validade até ${validadeData}.`,
   ];
 

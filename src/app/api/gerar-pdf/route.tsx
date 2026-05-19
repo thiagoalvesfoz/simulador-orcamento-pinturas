@@ -95,6 +95,11 @@ function validarRascunho(input: unknown): RascunhoOrcamento | null {
 function validarPerfil(input: unknown): PerfilPintor | undefined {
   if (!input || typeof input !== "object") return undefined;
   const p = input as Record<string, unknown>;
+  const condicoes = Array.isArray(p.condicoes)
+    ? p.condicoes.filter(
+        (c): c is string => typeof c === "string" && c.trim().length > 0
+      )
+    : [];
   return {
     nome: typeof p.nome === "string" ? p.nome : "",
     telefone: typeof p.telefone === "string" ? p.telefone : "",
@@ -102,10 +107,7 @@ function validarPerfil(input: unknown): PerfilPintor | undefined {
     cidade: typeof p.cidade === "string" ? p.cidade : "",
     logo_base64:
       typeof p.logo_base64 === "string" ? p.logo_base64 : undefined,
-    prazo_dias: typeof p.prazo_dias === "number" ? p.prazo_dias : 15,
-    entrada_percentual:
-      typeof p.entrada_percentual === "number" ? p.entrada_percentual : 20,
-    validade_dias: typeof p.validade_dias === "number" ? p.validade_dias : 20,
+    condicoes,
   };
 }
 

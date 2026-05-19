@@ -1,5 +1,22 @@
 "use client";
 
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -12,10 +29,16 @@ const DEFAULTS: PerfilPintor = {
   telefone: "",
   email: "",
   cidade: "",
-  prazo_dias: 15,
-  entrada_percentual: 20,
-  validade_dias: 20,
+  condicoes: [
+    "O prazo para finalização dos serviços é de 15 dias úteis.",
+    "Para início do trabalho recebemos 20% do valor antecipado.",
+  ],
 };
+
+const inputCls =
+  "w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition focus:border-brand-400 focus:ring-1 focus:ring-brand-400";
+
+const MAX_CHARS = 135;
 
 function Campo({
   label,
@@ -34,14 +57,99 @@ function Campo({
   );
 }
 
-const inputCls =
-  "w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition focus:border-brand-400 focus:ring-1 focus:ring-brand-400";
+function CondicaoItem({
+  id,
+  cond,
+  onRemove,
+}: {
+  id: string;
+  cond: string;
+  onRemove: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+        zIndex: isDragging ? 10 : undefined,
+      }}
+      className="flex cursor-grab items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-950/60 px-3 py-3 touch-none active:cursor-grabbing"
+      {...attributes}
+      {...listeners}
+    >
+      <span className="shrink-0 text-zinc-600">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          className="h-4 w-4"
+        >
+          <circle cx="6" cy="6" r="1.5" />
+          <circle cx="12" cy="6" r="1.5" />
+          <circle cx="18" cy="6" r="1.5" />
+          <circle cx="6" cy="12" r="1.5" />
+          <circle cx="12" cy="12" r="1.5" />
+          <circle cx="18" cy="12" r="1.5" />
+          <circle cx="6" cy="18" r="1.5" />
+          <circle cx="12" cy="18" r="1.5" />
+          <circle cx="18" cy="18" r="1.5" />
+        </svg>
+      </span>
+
+      <span className="flex-1 text-sm text-zinc-200 leading-snug">{cond}</span>
+
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onRemove(); }}
+        onPointerDown={(e) => e.stopPropagation()}
+        aria-label="Remover condição"
+        className="shrink-0 rounded-lg p-1.5 text-red-400 transition hover:bg-red-500/10"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-4 w-4"
+        >
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+          <path d="M10 11v6" />
+          <path d="M14 11v6" />
+          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+        </svg>
+      </button>
+    </li>
+  );
+}
 
 export default function PerfilPage() {
   const router = useRouter();
   const [perfil, setPerfil] = useState<PerfilPintor>(DEFAULTS);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [novaCondicao, setNovaCondicao] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     const saved = carregarPerfil();
@@ -52,7 +160,7 @@ export default function PerfilPage() {
     }
   }, []);
 
-  function set(field: keyof PerfilPintor, value: string | number) {
+  function set<K extends keyof PerfilPintor>(field: K, value: PerfilPintor[K]) {
     setPerfil((prev) => ({ ...prev, [field]: value }));
   }
 
@@ -74,11 +182,38 @@ export default function PerfilPage() {
     if (fileRef.current) fileRef.current.value = "";
   }
 
+  function adicionarCondicao() {
+    const txt = novaCondicao.trim();
+    if (!txt) return;
+    set("condicoes", [...perfil.condicoes, txt]);
+    setNovaCondicao("");
+  }
+
+  function removerCondicao(idx: number) {
+    set("condicoes", perfil.condicoes.filter((_, i) => i !== idx));
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIdx = perfil.condicoes.findIndex(
+      (_, i) => `cond-${i}` === active.id
+    );
+    const newIdx = perfil.condicoes.findIndex(
+      (_, i) => `cond-${i}` === over.id
+    );
+    if (oldIdx !== -1 && newIdx !== -1) {
+      set("condicoes", arrayMove(perfil.condicoes, oldIdx, newIdx));
+    }
+  }
+
   function aoSalvar(e: React.FormEvent) {
     e.preventDefault();
     salvarPerfil(perfil);
     toast.success("Perfil salvo com sucesso!");
   }
+
+  const condicaoIds = perfil.condicoes.map((_, i) => `cond-${i}`);
 
   return (
     <>
@@ -95,6 +230,7 @@ export default function PerfilPage() {
           </div>
 
           <form onSubmit={aoSalvar} className="space-y-4">
+            {/* Identificação */}
             <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur sm:p-6">
               <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-zinc-400">
                 Identificação
@@ -141,6 +277,7 @@ export default function PerfilPage() {
               </div>
             </section>
 
+            {/* Logo */}
             <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur sm:p-6">
               <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-zinc-400">
                 Logo
@@ -196,50 +333,64 @@ export default function PerfilPage() {
               />
             </section>
 
+            {/* Condições */}
             <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur sm:p-6">
               <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-zinc-400">
                 Condições padrão dos orçamentos
               </h3>
-              <div className="grid grid-cols-3 gap-4">
-                <Campo label="Prazo (dias úteis)">
+
+              {perfil.condicoes.length > 0 && (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={condicaoIds}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <ul className="mb-4 space-y-2">
+                      {perfil.condicoes.map((cond, idx) => (
+                        <CondicaoItem
+                          key={condicaoIds[idx]}
+                          id={condicaoIds[idx]}
+                          cond={cond}
+                          onRemove={() => removerCondicao(idx)}
+                        />
+                      ))}
+                    </ul>
+                  </SortableContext>
+                </DndContext>
+              )}
+
+              <div className="flex flex-col gap-3">
+                <div className="relative">
                   <input
-                    className={inputCls}
-                    type="number"
-                    min={1}
-                    max={365}
-                    value={perfil.prazo_dias}
-                    onChange={(e) =>
-                      set("prazo_dias", Math.max(1, Number(e.target.value)))
-                    }
+                    className={inputCls + " pr-16"}
+                    type="text"
+                    placeholder="Ex: Tinta fornecida pelo cliente."
+                    maxLength={MAX_CHARS}
+                    value={novaCondicao}
+                    onChange={(e) => setNovaCondicao(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        adicionarCondicao();
+                      }
+                    }}
                   />
-                </Campo>
-                <Campo label="Entrada (%)">
-                  <input
-                    className={inputCls}
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={perfil.entrada_percentual}
-                    onChange={(e) =>
-                      set(
-                        "entrada_percentual",
-                        Math.min(100, Math.max(0, Number(e.target.value)))
-                      )
-                    }
-                  />
-                </Campo>
-                <Campo label="Validade (dias)">
-                  <input
-                    className={inputCls}
-                    type="number"
-                    min={1}
-                    max={365}
-                    value={perfil.validade_dias}
-                    onChange={(e) =>
-                      set("validade_dias", Math.max(1, Number(e.target.value)))
-                    }
-                  />
-                </Campo>
+                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-zinc-500 tabular-nums">
+                    {novaCondicao.length}/{MAX_CHARS}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={adicionarCondicao}
+                  disabled={!novaCondicao.trim()}
+                  className="self-start rounded-xl border border-brand-400 bg-brand-400/10 px-4 py-2 text-sm font-semibold text-brand-400 transition hover:bg-brand-400/20 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  + Adicionar condição
+                </button>
               </div>
             </section>
 
