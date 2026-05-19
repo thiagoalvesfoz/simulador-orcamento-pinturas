@@ -15,17 +15,17 @@ const EXEMPLOS = [
 ];
 
 const PASSOS = [
-  { numero: 1, titulo: "Descreva" },
-  { numero: 2, titulo: "IA monta" },
-  { numero: 3, titulo: "Recebe PDF" },
+  { numero: 1, titulo: "Você descreve" },
+  { numero: 2, titulo: "IA calcula" },
+  { numero: 3, titulo: "Proposta pronta" },
 ];
 
 const FRASES_PENSANDO = [
-  "Analisando sua descrição...",
-  "Identificando tipo de serviço...",
-  "Calculando área e materiais...",
-  "Estimando faixa de preço...",
-  "Montando seu orçamento...",
+  "Lendo o serviço...",
+  "Identificando o tipo de trabalho...",
+  "Calculando o valor ideal...",
+  "Verificando os fatores do serviço...",
+  "Finalizando sua proposta...",
 ];
 
 export default function Home() {
@@ -119,8 +119,8 @@ export default function Home() {
               <span className="text-brand-400">em segundos</span>
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-zinc-400 sm:text-base">
-              Descreva o serviço com suas palavras e a IA monta o orçamento,
-              calcula o valor e gera o resultado.
+              Descreva o serviço com suas palavras. A IA calcula o valor justo
+              e gera uma proposta pronta para enviar ao cliente.
             </p>
           </section>
 
@@ -133,7 +133,7 @@ export default function Home() {
                 htmlFor="descricao"
                 className="flex items-center gap-2 text-sm font-semibold text-white"
               >
-                Descreva o serviço
+                O que vai fazer?
               </label>
             </div>
 

@@ -236,10 +236,10 @@ export default function PerfilPage() {
         <div className="w-full max-w-xl">
           <div className="mb-6">
             <h2 className="text-2xl font-extrabold tracking-tight text-white">
-              Seu perfil
+              Sua identidade profissional
             </h2>
             <p className="mt-1 text-sm text-zinc-400">
-              Dados usados nos PDFs gerados para seus clientes.
+              Configure uma vez — aparece em todas as suas propostas.
             </p>
           </div>
 
@@ -287,9 +287,9 @@ export default function PerfilPage() {
                     <circle cx="8.5" cy="8.5" r="1.5" />
                     <polyline points="21 15 16 10 5 21" />
                   </svg>
-                  Clique para enviar sua logo
+                  Envie sua logo e apareça de forma profissional
                   <span className="text-xs text-zinc-500">
-                    PNG, JPG ou SVG — aparece no PDF
+                    PNG, JPG ou SVG · aparece no rodapé de cada proposta
                   </span>
                 </button>
               )}
@@ -305,7 +305,7 @@ export default function PerfilPage() {
             {/* Identificação */}
             <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur sm:p-6">
               <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-zinc-400">
-                Seus dados
+                Seus dados de contato
               </h3>
               <div className="space-y-4">
                 <Campo label="Nome completo ou empresa">
@@ -355,7 +355,7 @@ export default function PerfilPage() {
             {/* Condições */}
             <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur sm:p-6">
               <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-zinc-400">
-                Condições padrão dos orçamentos
+                Condições da proposta
               </h3>
 
               {perfil.condicoes.length > 0 && (
@@ -439,7 +439,7 @@ export default function PerfilPage() {
                 type="submit"
                 className="flex-1 rounded-xl bg-brand-400 px-5 py-3.5 text-sm font-bold text-zinc-950 transition hover:bg-brand-300"
               >
-                Salvar perfil
+                Salvar meu perfil
               </button>
             </div>
           </form>

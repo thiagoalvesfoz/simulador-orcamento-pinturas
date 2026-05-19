@@ -72,10 +72,19 @@ export default function RevisaoPage() {
   const [rascunho, setRascunho] = useState<RascunhoOrcamento | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [baixando, setBaixando] = useState(false);
+  const [progresso, setProgresso] = useState(0);
   const [nomeCliente, setNomeCliente] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [perfilIncompleto, setPerfilIncompleto] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
+
+  useEffect(() => {
+    if (!baixando) return;
+    const id = setInterval(() => {
+      setProgresso((p) => (p >= 75 ? p : Math.min(75, p + (75 - p) * 0.1)));
+    }, 300);
+    return () => clearInterval(id);
+  }, [baixando]);
 
   useEffect(() => {
     const carregado = carregarOrcamento();
@@ -154,9 +163,11 @@ export default function RevisaoPage() {
   async function aoGerarPdf() {
     if (!rascunho || baixando) return;
     setBaixando(true);
+    setProgresso(8);
     try {
       const perfil = carregarPerfil();
       const numero = gerarNumeroOrcamento();
+      await new Promise((r) => setTimeout(r, 3000));
       const resposta = await fetch("/api/gerar-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -170,6 +181,8 @@ export default function RevisaoPage() {
       });
       if (!resposta.ok) throw new Error("Falha ao gerar PDF.");
       const blob = await resposta.blob();
+      setProgresso(100);
+      await new Promise((r) => setTimeout(r, 400));
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -183,6 +196,7 @@ export default function RevisaoPage() {
       toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF.");
     } finally {
       setBaixando(false);
+      setProgresso(0);
     }
   }
 
@@ -202,10 +216,10 @@ export default function RevisaoPage() {
           <header className="mb-6 text-center">
             <BadgeIA />
             <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-white">
-              Revisar orçamento
+              Quase lá
             </h2>
             <p className="mt-1 text-sm text-zinc-400">
-              Ajuste os dados e personalize o PDF em 2 passos
+              Confira os dados, ajuste o valor e baixe sua proposta
             </p>
           </header>
 
@@ -229,10 +243,10 @@ export default function RevisaoPage() {
                 <line x1="12" y1="17" x2="12.01" y2="17" />
               </svg>
               <span>
-                Seu perfil está incompleto — o PDF não terá seus dados de
-                contato.{" "}
+                Adicione seu nome e telefone — o cliente precisa saber como te
+                chamar.{" "}
                 <span className="font-semibold underline underline-offset-2">
-                  Configurar agora
+                  Completar perfil
                 </span>
               </span>
             </Link>
@@ -273,7 +287,7 @@ export default function RevisaoPage() {
               <StepBadge step={1} done={step === 2} />
               <div className="flex-1">
                 <p className="text-sm font-bold uppercase tracking-wider text-zinc-400">
-                  Revisão do orçamento
+                  Confira os dados
                 </p>
                 {step === 2 && (
                   <p className="mt-0.5 text-xs text-zinc-500">
@@ -296,7 +310,7 @@ export default function RevisaoPage() {
             >
               <div className="overflow-hidden">
               <div className="border-t border-zinc-800 px-5 pb-5 pt-5 sm:px-6 sm:pb-6">
-                <Campo label="Descrição original">
+                <Campo label="O que você descreveu">
                   <div className="w-full rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-300">
                     {rascunho.descricao}
                   </div>
@@ -400,7 +414,7 @@ export default function RevisaoPage() {
                   onClick={() => setStep(2)}
                   className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-400 px-5 py-3.5 text-sm font-bold text-zinc-950 shadow-lg shadow-brand-400/20 transition hover:bg-brand-300"
                 >
-                  Confirmar dados
+                  Está certo — próximo passo
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
@@ -429,7 +443,7 @@ export default function RevisaoPage() {
             >
               <StepBadge step={2} done={false} pending={step === 1} />
               <p className="text-sm font-bold uppercase tracking-wider text-zinc-400">
-                Personalizar PDF
+                Finalize sua proposta
               </p>
             </div>
 
@@ -464,22 +478,31 @@ export default function RevisaoPage() {
                   type="button"
                   onClick={aoGerarPdf}
                   disabled={baixando}
-                  className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-400 px-5 py-3.5 text-sm font-bold text-zinc-950 shadow-lg shadow-brand-400/20 transition hover:bg-brand-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-1 relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-brand-400 px-5 py-3.5 text-sm font-bold text-zinc-950 shadow-lg shadow-brand-400/20 transition hover:bg-brand-300 disabled:cursor-not-allowed"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-4 w-4"
-                  >
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <polyline points="14 2 14 8 20 8" />
-                  </svg>
-                  {baixando ? "Gerando..." : "Gerar PDF"}
+                  {baixando && (
+                    <div
+                      aria-hidden
+                      className="absolute inset-y-0 left-0 bg-white/15 transition-[width] duration-700 ease-out"
+                      style={{ width: `${progresso}%` }}
+                    />
+                  )}
+                  <span className="relative flex items-center gap-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-4 w-4"
+                    >
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                    {baixando ? "Montando sua proposta..." : "Baixar minha proposta"}
+                  </span>
                 </button>
               </div>
               </div>
