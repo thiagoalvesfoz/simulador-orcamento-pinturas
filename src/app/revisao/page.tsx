@@ -80,6 +80,17 @@ export default function RevisaoPage() {
   const [observacoes, setObservacoes] = useState("");
   const [perfilIncompleto, setPerfilIncompleto] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
+  const [podeCompartilharArquivo, setPodeCompartilharArquivo] = useState(false);
+
+  useEffect(() => {
+    try {
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const f = new File([""], "test.pdf", { type: "application/pdf" });
+      setPodeCompartilharArquivo(isMobile && !!navigator.canShare?.({ files: [f] }));
+    } catch {
+      setPodeCompartilharArquivo(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!baixando) return;
@@ -105,6 +116,12 @@ export default function RevisaoPage() {
   useEffect(() => {
     if (rascunho) salvarOrcamento(rascunho);
   }, [rascunho]);
+
+  useEffect(() => {
+    if (step !== 2) return;
+    const perfil = carregarPerfil();
+    setPerfilIncompleto(!perfil || !perfil.nome.trim());
+  }, [step]);
 
   const dados = rascunho?.dados;
 
@@ -209,6 +226,22 @@ export default function RevisaoPage() {
       .join(" ");
     const waUrl = `https://wa.me/?text=${encodeURIComponent(textoWa)}`;
 
+    async function compartilhar() {
+      if (!pdfUrl) return;
+      const response = await fetch(pdfUrl);
+      const blob = await response.blob();
+      const file = new File([blob], `orcamento-${numeroGerado}.pdf`, { type: "application/pdf" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: `Orçamento ${numeroGerado}`, text: textoWa });
+          return;
+        } catch (err) {
+          if (err instanceof Error && err.name === "AbortError") return;
+        }
+      }
+      window.open(waUrl, "_blank", "noopener,noreferrer");
+    }
+
     return (
       <>
         <Header />
@@ -257,10 +290,10 @@ export default function RevisaoPage() {
             </div>
 
             <div className="mt-6 flex flex-col gap-3 w-full">
-              {pdfUrl && (
-                <a
-                  href={pdfUrl}
-                  download={`orcamento-${numeroGerado}.pdf`}
+              {podeCompartilharArquivo ? (
+                <button
+                  type="button"
+                  onClick={compartilhar}
                   className="flex items-center justify-center gap-2 rounded-xl bg-brand-400 px-5 py-3.5 text-sm font-bold text-zinc-950 shadow-lg shadow-brand-400/20 transition hover:bg-brand-300"
                 >
                   <svg
@@ -273,30 +306,39 @@ export default function RevisaoPage() {
                     strokeLinejoin="round"
                     className="h-4 w-4"
                   >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
+                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                    <polyline points="16 6 12 2 8 6" />
+                    <line x1="12" y1="2" x2="12" y2="15" />
                   </svg>
-                  Baixar PDF
-                </a>
+                  Salvar ou compartilhar PDF
+                </button>
+              ) : (
+                <>
+                  {pdfUrl && (
+                    <a
+                      href={pdfUrl}
+                      download={`orcamento-${numeroGerado}.pdf`}
+                      className="flex items-center justify-center gap-2 rounded-xl bg-brand-400 px-5 py-3.5 text-sm font-bold text-zinc-950 shadow-lg shadow-brand-400/20 transition hover:bg-brand-300"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-4 w-4"
+                      >
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                      Baixar PDF
+                    </a>
+                  )}
+                </>
               )}
-              <a
-                href={waUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-5 py-3.5 text-sm font-bold text-white shadow-lg transition hover:bg-[#1fbb58]"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="h-5 w-5"
-                >
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.122.553 4.112 1.522 5.845L.057 23.082a.75.75 0 0 0 .917.919l5.339-1.47A11.95 11.95 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.698 9.698 0 0 1-4.96-1.364l-.355-.212-3.687 1.016 1.03-3.596-.232-.373A9.699 9.699 0 0 1 2.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z" />
-                </svg>
-                Compartilhar via WhatsApp
-              </a>
               <button
                 type="button"
                 onClick={() => {
@@ -603,7 +645,7 @@ export default function RevisaoPage() {
                     placeholder="Ex: inclui 2 demãos, tinta fornecida pelo cliente..."
                     value={observacoes}
                     onChange={(e) => setObservacoes(e.target.value)}
-                    className="w-full resize-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
+                    className="w-full resize-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-4 py-3 text-base text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
                   />
                 </Campo>
 
