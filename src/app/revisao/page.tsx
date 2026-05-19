@@ -343,8 +343,8 @@ export default function RevisaoPage() {
                 type="button"
                 onClick={() => {
                   if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-                  limparOrcamento();
-                  router.push("/");
+                  setPdfUrl(null);
+                  setBaixado(false);
                 }}
                 className="flex items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900 px-5 py-3.5 text-sm font-bold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-800"
               >
@@ -357,6 +357,30 @@ export default function RevisaoPage() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   className="h-4 w-4"
+                >
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                Editar orçamento
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+                  limparOrcamento();
+                  router.push("/");
+                }}
+                className="flex items-center justify-center gap-1.5 px-5 py-2.5 text-sm text-zinc-500 transition hover:text-zinc-300"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-3.5 w-3.5"
                 >
                   <line x1="12" y1="5" x2="12" y2="19" />
                   <line x1="5" y1="12" x2="19" y2="12" />

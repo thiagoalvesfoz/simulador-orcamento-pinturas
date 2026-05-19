@@ -430,7 +430,7 @@ export default function PerfilPage() {
             <div className="flex flex-col-reverse gap-3 sm:flex-row">
               <button
                 type="button"
-                onClick={() => router.back()}
+                onClick={() => window.history.length > 1 ? router.back() : router.push("/")}
                 className="flex-1 rounded-xl border border-zinc-700 bg-transparent px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-zinc-800"
               >
                 Voltar
