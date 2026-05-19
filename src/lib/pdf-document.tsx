@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/alt-text */
 import {
   Document,
   Image,
@@ -424,7 +425,7 @@ export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
         <View style={s.footer}>
           <View style={s.footerLeft}>
             {perfil?.logo_base64 ? (
-              <Image src={perfil.logo_base64} style={s.logoImg} alt="" />
+              <Image src={perfil.logo_base64} style={s.logoImg} />
             ) : (
               <LogoPDF width={90} />
             )}
