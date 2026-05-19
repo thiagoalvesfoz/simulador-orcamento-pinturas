@@ -50,7 +50,7 @@ function Campo({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+      <label className="text-xs font-medium text-zinc-400">
         {label}
       </label>
       {children}
@@ -234,14 +234,14 @@ export default function PerfilPage() {
       <Header />
       <main className="flex flex-1 flex-col items-center px-4 py-8 sm:py-10">
         <div className="w-full max-w-xl">
-          <div className="mb-6">
-            <h2 className="text-2xl font-extrabold tracking-tight text-white">
+          <header className="mb-8 text-center">
+            <h2 className="text-3xl font-extrabold tracking-tight text-white">
               Sua identidade profissional
             </h2>
             <p className="mt-1 text-sm text-zinc-400">
               Seus dados aparecem em todos os orçamentos gerados.
             </p>
-          </div>
+          </header>
 
           
 
@@ -431,7 +431,7 @@ export default function PerfilPage() {
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="flex-1 rounded-xl border border-zinc-700 bg-zinc-900/60 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-zinc-800"
+                className="flex-1 rounded-xl border border-zinc-700 bg-transparent px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-zinc-800"
               >
                 Voltar
               </button>

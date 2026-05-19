@@ -213,9 +213,8 @@ export default function RevisaoPage() {
       <Header />
       <main className="flex flex-1 flex-col items-center px-4 py-8 sm:py-10">
         <div className="w-full max-w-xl">
-          <header className="mb-6 text-center">
-            <BadgeIA />
-            <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-white">
+          <header className="mb-8 text-center">
+            <h2 className="text-3xl font-extrabold tracking-tight text-white">
               Quase lá
             </h2>
             <p className="mt-1 text-sm text-zinc-400">
@@ -223,38 +222,10 @@ export default function RevisaoPage() {
             </p>
           </header>
 
-          {perfilIncompleto && (
-            <Link
-              href="/perfil"
-              className="mb-4 flex items-center gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-300 transition hover:bg-amber-500/20"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4 shrink-0"
-              >
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                <line x1="12" y1="9" x2="12" y2="13" />
-                <line x1="12" y1="17" x2="12.01" y2="17" />
-              </svg>
-              <span>
-                Complete seu perfil para o cliente saber como te contatar.{" "}
-                <span className="font-semibold underline underline-offset-2">
-                  Completar perfil
-                </span>
-              </span>
-            </Link>
-          )}
-
           <button
             type="button"
             onClick={() => router.push("/")}
-            className="mb-4 mt-5 flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/60 px-5 py-3 text-sm font-semibold text-zinc-400 transition hover:bg-zinc-800 hover:text-white"
+            className="mb-5 flex items-center gap-1.5 text-xs text-zinc-400 transition hover:text-zinc-200"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -264,7 +235,7 @@ export default function RevisaoPage() {
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="h-4 w-4"
+              className="h-3.5 w-3.5"
             >
               <line x1="19" y1="12" x2="5" y2="12" />
               <polyline points="12 19 5 12 12 5" />
@@ -286,13 +257,21 @@ export default function RevisaoPage() {
               <StepBadge step={1} done={step === 2} />
               <div className="flex-1">
                 <p className="text-sm font-bold uppercase tracking-wider text-zinc-400">
-                  Confira os dados
+                  {step === 2 ? "Dados confirmados" : "Confira os dados"}
                 </p>
                 {step === 2 && (
-                  <p className="mt-0.5 text-xs text-zinc-500">
-                    {TIPOS_SERVICO_LABEL[dados.tipo]} · {dados.area_m2}m² ·{" "}
-                    {formatadorBRL.format(dados.valor_final)}
-                  </p>
+                  <div className="mt-0.5">
+                    <p className="text-xs text-zinc-400">
+                      {TIPOS_SERVICO_LABEL[dados.tipo]} · {dados.area_m2}m² ·{" "}
+                      {COMPLEXIDADES_LABEL[dados.complexidade]}
+                      {dados.fatores.length > 0 && (
+                        <> · +{dados.fatores.length} {dados.fatores.length === 1 ? "fator" : "fatores"}</>
+                      )}
+                    </p>
+                    <p className="text-base font-bold text-brand-400 tabular-nums">
+                      {formatadorBRL.format(dados.valor_final)}
+                    </p>
+                  </div>
                 )}
               </div>
               {step === 2 && (
@@ -310,9 +289,9 @@ export default function RevisaoPage() {
               <div className="overflow-hidden">
               <div className="border-t border-zinc-800 px-5 pb-5 pt-5 sm:px-6 sm:pb-6">
                 <Campo label="O que você descreveu">
-                  <div className="w-full rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-300">
+                  <p className="rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm leading-relaxed text-zinc-300">
                     {rascunho.descricao}
-                  </div>
+                  </p>
                 </Campo>
 
                 <Campo label="Tipo de serviço">
@@ -338,7 +317,7 @@ export default function RevisaoPage() {
                           area_m2: Math.max(1, Number(e.target.value) || 0),
                         })
                       }
-                      className="w-full rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
+                      className="w-full rounded-xl border border-zinc-700 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
                     />
                   </Campo>
 
@@ -357,7 +336,7 @@ export default function RevisaoPage() {
                 </div>
 
                 <Campo label="Fatores adicionais">
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     {FATORES.map((f) => {
                       const ativo = dados.fatores.includes(f);
                       return (
@@ -368,8 +347,8 @@ export default function RevisaoPage() {
                           className={
                             "cursor-pointer rounded-full border px-4 py-1.5 text-xs font-medium transition " +
                             (ativo
-                              ? "border-brand-400 bg-brand-400 text-zinc-950"
-                              : "border-zinc-700 bg-transparent text-zinc-200 hover:border-brand-400/60 hover:text-white")
+                              ? "border-brand-400/25 bg-brand-400/8 text-brand-300"
+                              : "border-zinc-700 bg-zinc-800/50 text-zinc-200 hover:border-brand-400/60 hover:bg-zinc-800 hover:text-white")
                           }
                         >
                           {FATORES_LABEL[f]}
@@ -379,30 +358,30 @@ export default function RevisaoPage() {
                   </div>
                 </Campo>
 
-                <div className="mt-1 rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
+                <div className="mt-5 rounded-xl border border-brand-400/25 bg-gradient-to-br from-brand-400/8 to-zinc-950/60 p-4">
                   <p className="text-xs font-medium text-zinc-400">
                     Faixa sugerida
                   </p>
-                  <p className="mt-1 text-2xl font-bold text-white tabular-nums">
-                    {formatadorBRL.format(dados.faixa_preco_min)}
+                  <p className="mt-2 text-lg font-medium text-zinc-400 tabular-nums">
+                    {formatadorBRL.format(faixaRecalculada.faixa_preco_min)}
                     <span className="mx-2 text-zinc-500">—</span>
-                    {formatadorBRL.format(dados.faixa_preco_max)}
+                    {formatadorBRL.format(faixaRecalculada.faixa_preco_max)}
                   </p>
 
                   <div className="my-4 border-t border-zinc-800" />
 
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-sm font-semibold text-white">
+                  <div className="flex flex-col items-end">
+                    <span className="text-xs font-medium text-zinc-400">
                       Valor final
                     </span>
-                    <span className="text-2xl font-bold text-white tabular-nums">
+                    <span className="text-3xl font-extrabold text-brand-400 tabular-nums">
                       {formatadorBRL.format(dados.valor_final)}
                     </span>
                   </div>
 
                   <SliderValor
-                    min={dados.faixa_preco_min}
-                    max={dados.faixa_preco_max}
+                    min={faixaRecalculada.faixa_preco_min}
+                    max={faixaRecalculada.faixa_preco_max}
                     valor={dados.valor_final}
                     onChange={(v) => atualizar({ valor_final: v })}
                   />
@@ -411,7 +390,7 @@ export default function RevisaoPage() {
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-400 px-5 py-3.5 text-sm font-bold text-zinc-950 shadow-lg shadow-brand-400/20 transition hover:bg-brand-300"
+                  className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-400 px-5 py-3.5 text-sm font-bold text-zinc-950 shadow-lg shadow-brand-400/20 transition hover:bg-brand-300"
                 >
                   Confirmar e continuar
                   <svg
@@ -434,7 +413,7 @@ export default function RevisaoPage() {
           </div>
 
           {/* Step 2 */}
-          <div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-900/60 overflow-hidden">
+          <div className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900/60 overflow-hidden">
             <div
               className={`flex items-center gap-3 p-5 sm:p-6 ${
                 step === 1 ? "opacity-50" : ""
@@ -453,23 +432,50 @@ export default function RevisaoPage() {
             >
               <div className="overflow-hidden">
               <div className="border-t border-zinc-800 px-5 pb-5 pt-5 sm:px-6 sm:pb-6">
+                {perfilIncompleto && (
+                  <Link
+                    href="/perfil"
+                    className="mb-4 flex items-center gap-3 rounded-r-xl border-l-2 border-amber-500 bg-zinc-800/80 px-4 py-3 text-sm text-zinc-300 transition hover:bg-zinc-800"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-4 w-4 shrink-0 text-amber-400"
+                    >
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                      <line x1="12" y1="9" x2="12" y2="13" />
+                      <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <span>
+                      Complete seu perfil para o cliente saber como te contatar.{" "}
+                      <span className="font-semibold underline underline-offset-2">
+                        Completar perfil
+                      </span>
+                    </span>
+                  </Link>
+                )}
                 <Campo label="Nome do cliente">
                   <input
                     type="text"
                     placeholder="Ex: João Silva"
                     value={nomeCliente}
                     onChange={(e) => setNomeCliente(e.target.value)}
-                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
+                    className="w-full rounded-xl border border-zinc-700 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
                   />
                 </Campo>
 
                 <Campo label="Observações (opcional)">
                   <textarea
-                    rows={3}
+                    rows={2}
                     placeholder="Ex: inclui 2 demãos, tinta fornecida pelo cliente..."
                     value={observacoes}
                     onChange={(e) => setObservacoes(e.target.value)}
-                    className="w-full resize-none rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
+                    className="w-full resize-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
                   />
                 </Campo>
 
@@ -522,8 +528,8 @@ function Campo({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mb-4">
-      <label className="mb-1.5 block text-xs font-medium text-zinc-400">
+    <div className="mb-5">
+      <label className="mb-2 block text-xs font-medium text-zinc-400">
         {label}
       </label>
       {children}
@@ -545,7 +551,7 @@ function SelectDark({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full appearance-none rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 pr-10 text-sm text-zinc-100 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
+        className="w-full appearance-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-4 py-3 pr-10 text-sm text-zinc-100 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value} className="bg-zinc-900">
@@ -610,7 +616,7 @@ function SliderValor({
           className="relative w-full appearance-none bg-transparent cursor-pointer h-5 [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-brand-400 [&::-webkit-slider-thumb]:shadow [&::-webkit-slider-thumb]:-mt-1.75 [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-transparent [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-brand-400"
         />
       </div>
-      <div className="mt-2 flex justify-between text-xs text-zinc-500 tabular-nums">
+      <div className="mt-2 flex justify-between text-xs text-zinc-400 tabular-nums">
         <span>{formatadorBRL.format(sliderMin)}</span>
         <span>{formatadorBRL.format(sliderMax)}</span>
       </div>
