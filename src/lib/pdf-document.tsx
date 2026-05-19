@@ -195,10 +195,8 @@ const s = StyleSheet.create({
     marginBottom: 24,
   },
   invLabel: {
-    fontSize: 9,
+    fontSize: 13,
     fontFamily: "Helvetica-Bold",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
     color: C.invLabel,
   },
   invValueRow: {
@@ -353,13 +351,12 @@ const formatDate = (d: Date) =>
 
 
 export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
-  const { dados, descricao, perfil } = rascunho;
+  const { dados, perfil } = rascunho;
 
   const terms = perfil?.condicoes ?? [];
   const cliente = rascunho.nome_cliente?.trim() || null;
   const temPerfil = perfil && (perfil.nome || perfil.telefone || perfil.email);
-  const somaSubtotais = dados.itens.reduce((s, i) => s + i.subtotal, 0);
-  const temAjuste = dados.valor_final !== somaSubtotais;
+
 
   return (
     <Document>
@@ -389,12 +386,12 @@ export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
           <Text style={s.intro}>
             {cliente ? (
               <>
-                {"Elaboramos este orçamento para "}
+                {"Uma nova pintura começa com uma decisão certa. Preparamos este orçamento especialmente para "}
                 <Text style={s.introBold}>{cliente}</Text>
-                {descricao ? `, com base no escopo de serviços descrito abaixo.` : `.`}
+                {" — cada detalhe pensado para entregar o resultado que você merece."}
               </>
             ) : (
-              `Elaboramos este orçamento com base no escopo de serviços descrito abaixo.`
+              `Uma nova pintura começa com uma decisão certa. Preparamos este orçamento com cada detalhe pensado para entregar o resultado que você merece.`
             )}
           </Text>
 
@@ -402,7 +399,7 @@ export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
           <View style={s.servicesCard}>
             <Text style={s.servicesHead}>Escopo do Serviço</Text>
             {dados.itens.map((item, i) => {
-              const isLast = i === dados.itens.length - 1 && !temAjuste;
+              const isLast = i === dados.itens.length - 1;
               const qtdLabel = item.unidade === "m2"
                 ? `${item.quantidade} m²`
                 : `${item.quantidade} ${item.quantidade === 1 ? "unidade" : "unidades"}`;
@@ -415,16 +412,9 @@ export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
                     <Text style={s.serviceText}>{TIPOS_SERVICO_LABEL[item.tipo]}</Text>
                     <Text style={s.serviceMeta}>{metaPartes.join(" · ")}</Text>
                   </View>
-                  <Text style={s.serviceSubtotal}>R$ {formatBRL(item.subtotal)}</Text>
                 </View>
               );
             })}
-            {temAjuste && (
-              <View style={s.servicesTotalRow}>
-                <Text style={s.servicesTotalLabel}>Valor negociado</Text>
-                <Text style={s.servicesTotalValue}>R$ {formatBRL(dados.valor_final)}</Text>
-              </View>
-            )}
           </View>
 
           {/* Observações */}

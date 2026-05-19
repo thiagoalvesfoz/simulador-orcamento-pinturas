@@ -44,7 +44,7 @@ async function extrair(descricao: string): Promise<DadosExtraidos> {
 
 function extraidoParaOrcamento(extraido: DadosExtraidos): DadosOrcamento {
   const itens: ItemOrcamento[] = extraido.itens.map((item, i) => {
-    const { subtotal } = calcularSubtotalItem(item);
+    const { subtotal, explicacao } = calcularSubtotalItem(item);
     return {
       id: `item-${i}-${Math.random().toString(36).slice(2, 7)}`,
       tipo: item.tipo,
@@ -53,6 +53,12 @@ function extraidoParaOrcamento(extraido: DadosExtraidos): DadosOrcamento {
       complexidade: item.complexidade,
       fatores: item.fatores,
       subtotal,
+      serviceBandId:     item.serviceBandId     ?? undefined,
+      estado_superficie: item.estado_superficie ?? undefined,
+      patologias:        item.patologias        ?? undefined,
+      preparacoes:       item.preparacoes       ?? undefined,
+      ocupacao:          item.ocupacao          ?? undefined,
+      explicacao,
     };
   });
 

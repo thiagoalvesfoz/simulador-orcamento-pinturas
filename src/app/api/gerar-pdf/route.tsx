@@ -3,6 +3,7 @@ import { OrcamentoPdf } from "@/lib/pdf-document";
 import {
   COMPLEXIDADES,
   FATORES,
+  SERVICE_BAND_IDS,
   TIPOS_SERVICO,
   UNIDADE_POR_TIPO,
   type Complexidade,
@@ -10,6 +11,7 @@ import {
   type ItemOrcamento,
   type PerfilPintor,
   type RascunhoOrcamento,
+  type ServiceBandId,
   type TipoServico,
 } from "@/lib/types";
 
@@ -101,6 +103,7 @@ function validarItem(input: unknown): ItemOrcamento | null {
     complexidade: i.complexidade,
     fatores: i.fatores,
     subtotal: typeof i.subtotal === "number" ? i.subtotal : 0,
+    serviceBandId: isServiceBandId(i.serviceBandId) ? i.serviceBandId : undefined,
   };
 }
 
@@ -137,4 +140,8 @@ function isComplexidade(v: unknown): v is Complexidade {
 
 function isFator(v: unknown): v is Fator {
   return typeof v === "string" && (FATORES as readonly string[]).includes(v);
+}
+
+function isServiceBandId(v: unknown): v is ServiceBandId {
+  return typeof v === "string" && (SERVICE_BAND_IDS as readonly string[]).includes(v);
 }

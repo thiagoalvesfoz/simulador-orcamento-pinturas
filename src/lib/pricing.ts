@@ -1,49 +1,246 @@
-import type { Complexidade, Fator, ItemExtraido, ItemOrcamento, TipoServico } from "./types";
+import type {
+  Complexidade,
+  EstadoSuperficie,
+  FatorExplicado,
+  Fator,
+  Ocupacao,
+  Patologia,
+  Preparacao,
+  PricingExplicacao,
+  ServiceBandId,
+  TipoServico,
+} from "./types";
+import {
+  COMPLEXIDADES_LABEL,
+  ESTADOS_SUPERFICIE_LABEL,
+  FATORES_LABEL,
+  OCUPACOES_LABEL,
+  PATOLOGIAS_LABEL,
+  PREPARACOES_LABEL,
+} from "./types";
+import { getBand } from "./pricing-catalog";
 
-const PRECO_BASE: Record<TipoServico, number> = {
-  pintura_parede:        35,  // repintura R$20-30 (baixa) → alto padrão R$45-70 (premium)
-  pintura_teto:          28,  // simples R$20-30 → completa R$30-45
-  pintura_externa:       40,  // simples R$25-40 → fachada completa R$35-65
-  textura:               55,  // rolada R$30-50 → projetada R$50-90
-  efeito_decorativo:    140,  // cimento queimado R$70-120 → marmorização premium R$180-350
-  pintura_grade:         60,  // grade R$40-80/m²
-  pintura_telhado:       40,  // simples R$25-45 → com tratamento R$35-60
-  pintura_piso:          35,  // calçada R$15-25 → epóxi R$40-90
-  pintura_porta_janela: 180,  // porta lisa R$150-300/un, janela R$120-300/un
-  pintura_portao:       700,  // pequeno R$250-600, médio R$600-1500, grande R$1500-4000
+const POSICAO_COMPLEXIDADE: Record<Complexidade, number> = {
+  baixa:   0.20,
+  media:   0.50,
+  alta:    0.70,
+  premium: 0.90,
 };
 
-const MULTIPLICADOR_COMPLEXIDADE: Record<Complexidade, number> = {
-  baixa:   0.85,
-  media:   1.0,
-  alta:    1.25,
-  premium: 1.6,
+const SCORE_FATOR: Partial<Record<Fator, number>> = {
+  parede_ruim:      0.20,
+  ambiente_externo: 0.05,
 };
 
-const ACRESCIMO_FATOR: Record<Fator, number> = {
-  altura_alta:      0.30,  // tabela: +20% a +40%
-  ambiente_externo: 0.10,
-  acesso_dificil:   0.20,
-  parede_ruim:      0.25,
+const SCORE_ESTADO_SUPERFICIE: Record<EstadoSuperficie, number> = {
+  excelente: -0.15,
+  boa:        0.00,
+  regular:   +0.10,
+  ruim:      +0.25,
+  critica:   +0.40,
 };
 
-const VARIACAO_FAIXA = 0.15;
+const SCORE_PATOLOGIA: Partial<Record<Patologia, number>> = {
+  trinca_leve:        +0.05,
+  trinca_profunda:    +0.15,
+  infiltracao_antiga: +0.15,
+  infiltracao_ativa:  +0.30,
+  mofo:               +0.15,
+  eflorescencia:      +0.10,
+  marcas_adesivo:     +0.05,
+  tinta_descascando:  +0.10,
+  ferrugem:           +0.20,
+};
 
-type EntradaItem = Pick<ItemExtraido | ItemOrcamento, "tipo" | "quantidade" | "complexidade" | "fatores">;
+const SCORE_PREPARACAO: Partial<Record<Preparacao, number>> = {
+  massa_corrida:        +0.10,
+  lixamento:            +0.05,
+  selador:              +0.03,
+  fundo_preparador:     +0.03,
+  impermeabilizante:    +0.15,
+  tratamento_mofo:      +0.10,
+  correcao_trinca:      +0.10,
+  tratamento_ferrugem:  +0.15,
+};
+
+const SCORE_OCUPACAO: Record<Ocupacao, number> = {
+  vazio:                  -0.10,
+  parcialmente_mobiliado: +0.05,
+  mobiliado:              +0.20,
+};
+
+const CAP_PATOLOGIAS  = 0.30;
+const CAP_PREPARACOES = 0.25;
+
+const MULTIPLICADOR_ESPECIAL: Partial<Record<Fator, number>> = {
+  altura_alta:    1.30,
+  acesso_dificil: 1.20,
+};
+const MULTIPLICADOR_ESPECIAL_MAX = 1.50;
+
+type EntradaItem = {
+  tipo: TipoServico;
+  quantidade: number;
+  complexidade: Complexidade;
+  fatores: Fator[];
+  serviceBandId?: ServiceBandId;
+  estado_superficie?: EstadoSuperficie | null;
+  patologias?: Patologia[] | null;
+  preparacoes?: Preparacao[] | null;
+  ocupacao?: Ocupacao | null;
+};
 
 export function calcularSubtotalItem(item: EntradaItem): {
   subtotal: number;
   min: number;
   max: number;
+  explicacao: PricingExplicacao;
 } {
-  const base = PRECO_BASE[item.tipo];
-  const mult = MULTIPLICADOR_COMPLEXIDADE[item.complexidade];
-  const acrescimo = item.fatores.reduce((acc, f) => acc + ACRESCIMO_FATOR[f], 0);
-  const estimado = base * Math.max(item.quantidade, 1) * mult * (1 + acrescimo);
+  const band = getBand(item.tipo, item.serviceBandId ?? undefined);
+  const qty = Math.max(item.quantidade, 1);
+  const aplicados: FatorExplicado[] = [];
+  const alertas: string[] = [];
+
+  // 1. Baseline from complexidade
+  const posBase = POSICAO_COMPLEXIDADE[item.complexidade];
+  aplicados.push({
+    id: `complexidade_${item.complexidade}`,
+    label: COMPLEXIDADES_LABEL[item.complexidade],
+    grupo: "complexidade",
+    scoreAdj: posBase,
+  });
+
+  // 2. Fase 3 rich context presence disables old parede_ruim to avoid double-count
+  const hasRichContext =
+    item.estado_superficie != null || (item.patologias?.length ?? 0) > 0;
+
+  let scoreOldFatores = 0;
+  for (const f of item.fatores) {
+    const adj = SCORE_FATOR[f];
+    if (adj == null) continue;
+    // skip parede_ruim when rich context available; keep ambiente_externo always
+    if (f === "parede_ruim" && hasRichContext) continue;
+    scoreOldFatores += adj;
+    aplicados.push({ id: f, label: FATORES_LABEL[f], grupo: "legado", scoreAdj: adj });
+  }
+
+  // 3. Estado superfície
+  const scoreEstado =
+    item.estado_superficie != null
+      ? SCORE_ESTADO_SUPERFICIE[item.estado_superficie]
+      : 0;
+  if (item.estado_superficie != null) {
+    aplicados.push({
+      id: `estado_${item.estado_superficie}`,
+      label: ESTADOS_SUPERFICIE_LABEL[item.estado_superficie],
+      grupo: "estado_superficie",
+      scoreAdj: scoreEstado,
+    });
+  }
+
+  // 4. Patologias (group cap)
+  const rawPat = (item.patologias ?? []).reduce(
+    (acc, p) => acc + (SCORE_PATOLOGIA[p] ?? 0),
+    0
+  );
+  const scorePatologias = Math.min(rawPat, CAP_PATOLOGIAS);
+  for (const p of item.patologias ?? []) {
+    aplicados.push({
+      id: p,
+      label: PATOLOGIAS_LABEL[p],
+      grupo: "patologia",
+      scoreAdj: SCORE_PATOLOGIA[p] ?? 0,
+    });
+  }
+
+  // 5. Preparações (group cap)
+  const rawPrep = (item.preparacoes ?? []).reduce(
+    (acc, p) => acc + (SCORE_PREPARACAO[p] ?? 0),
+    0
+  );
+  const scorePreparacoes = Math.min(rawPrep, CAP_PREPARACOES);
+  for (const p of item.preparacoes ?? []) {
+    aplicados.push({
+      id: p,
+      label: PREPARACOES_LABEL[p],
+      grupo: "preparacao",
+      scoreAdj: SCORE_PREPARACAO[p] ?? 0,
+    });
+  }
+
+  // 6. Ocupação
+  const scoreOcupacao =
+    item.ocupacao != null ? SCORE_OCUPACAO[item.ocupacao] : 0;
+  if (item.ocupacao != null) {
+    aplicados.push({
+      id: item.ocupacao,
+      label: OCUPACOES_LABEL[item.ocupacao],
+      grupo: "ocupacao",
+      scoreAdj: scoreOcupacao,
+    });
+  }
+
+  // 7. Final position
+  const posicaoFinal = Math.min(
+    Math.max(
+      posBase +
+        scoreOldFatores +
+        scoreEstado +
+        scorePatologias +
+        scorePreparacoes +
+        scoreOcupacao,
+      0
+    ),
+    1
+  );
+
+  // 8. Interpolated unit price
+  const precoUnidade = band.min + posicaoFinal * (band.max - band.min);
+
+  // 9. Execution-risk multipliers
+  let multRaw = 1.0;
+  for (const f of item.fatores) {
+    const m = MULTIPLICADOR_ESPECIAL[f];
+    if (!m) continue;
+    multRaw *= m;
+    aplicados.push({
+      id: f,
+      label: FATORES_LABEL[f],
+      grupo: "multiplicador_especial",
+      multiplicador: m,
+    });
+  }
+  const multEspecial = Math.min(multRaw, MULTIPLICADOR_ESPECIAL_MAX);
+
+  // 10. Alertas
+  if (item.patologias?.includes("infiltracao_ativa")) {
+    alertas.push("Infiltração ativa detectada — recomendamos vistoria antes de fechar o orçamento.");
+  }
+  if (item.estado_superficie === "critica") {
+    alertas.push("Estado crítico da superfície — vistoria técnica recomendada.");
+  }
+  if (item.patologias?.includes("trinca_profunda")) {
+    alertas.push("Trinca profunda detectada — pode indicar problema estrutural. Avalie antes de pintar.");
+  }
+
+  const explicacao: PricingExplicacao = {
+    bandId:          band.id,
+    bandLabel:       band.label,
+    bandMin:         band.min,
+    bandMax:         band.max,
+    posicaoBase:     posBase,
+    posicaoFinal,
+    precoUnidade:    Math.round(precoUnidade * 100) / 100,
+    multEspecial,
+    fatoresAplicados: aplicados,
+    alertas,
+  };
+
   return {
-    subtotal: Math.round(estimado),
-    min:      Math.round(estimado * (1 - VARIACAO_FAIXA)),
-    max:      Math.round(estimado * (1 + VARIACAO_FAIXA)),
+    subtotal: Math.round(precoUnidade * qty * multEspecial),
+    min:      Math.round(band.min * qty),
+    max:      Math.round(band.max * qty * MULTIPLICADOR_ESPECIAL_MAX),
+    explicacao,
   };
 }
 

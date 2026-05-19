@@ -1,22 +1,5 @@
 "use client";
 
-import {
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  arrayMove,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -39,8 +22,6 @@ const DEFAULTS: PerfilPintor = {
 const inputCls =
   "w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-base text-white placeholder-zinc-500 outline-none transition focus:border-brand-400 focus:ring-1 focus:ring-brand-400";
 
-const MAX_CHARS = 135;
-
 function Campo({
   label,
   children,
@@ -58,103 +39,11 @@ function Campo({
   );
 }
 
-function CondicaoItem({
-  id,
-  cond,
-  onRemove,
-  isRemoving,
-}: {
-  id: string;
-  cond: string;
-  onRemove: () => void;
-  isRemoving?: boolean;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
-
-  return (
-    <li
-      ref={setNodeRef}
-      style={{
-        transform: isRemoving ? "translateY(6px)" : CSS.Transform.toString(transform),
-        transition: isRemoving ? "opacity 250ms ease, transform 250ms ease" : transition,
-        opacity: isDragging ? 0.4 : isRemoving ? 0 : 1,
-        zIndex: isDragging ? 10 : undefined,
-      }}
-      className="flex cursor-grab items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-950/60 px-3 py-3 touch-none active:cursor-grabbing"
-      suppressHydrationWarning
-      {...attributes}
-      {...listeners}
-    >
-      <span className="shrink-0 text-zinc-600">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          className="h-4 w-4"
-        >
-          <circle cx="6" cy="6" r="1.5" />
-          <circle cx="12" cy="6" r="1.5" />
-          <circle cx="18" cy="6" r="1.5" />
-          <circle cx="6" cy="12" r="1.5" />
-          <circle cx="12" cy="12" r="1.5" />
-          <circle cx="18" cy="12" r="1.5" />
-          <circle cx="6" cy="18" r="1.5" />
-          <circle cx="12" cy="18" r="1.5" />
-          <circle cx="18" cy="18" r="1.5" />
-        </svg>
-      </span>
-
-      <span className="flex-1 text-sm text-zinc-200 leading-snug">{cond}</span>
-
-      <button
-        type="button"
-        onClick={(e) => { e.stopPropagation(); onRemove(); }}
-        onPointerDown={(e) => e.stopPropagation()}
-        aria-label="Remover condição"
-        className="shrink-0 rounded-lg p-1.5 text-red-400 transition hover:bg-red-500/10 cursor-pointer"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-4 w-4"
-        >
-          <polyline points="3 6 5 6 21 6" />
-          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-          <path d="M10 11v6" />
-          <path d="M14 11v6" />
-          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-        </svg>
-      </button>
-    </li>
-  );
-}
-
 export default function PerfilPage() {
   const router = useRouter();
   const [perfil, setPerfil] = useState<PerfilPintor>(DEFAULTS);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [novaCondicao, setNovaCondicao] = useState("");
-  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
   const fileRef = useRef<HTMLInputElement>(null);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
 
   useEffect(() => {
     const saved = carregarPerfil();
@@ -187,47 +76,11 @@ export default function PerfilPage() {
     if (fileRef.current) fileRef.current.value = "";
   }
 
-  function adicionarCondicao() {
-    const txt = novaCondicao.trim();
-    if (!txt) return;
-    set("condicoes", [...perfil.condicoes, txt]);
-    setNovaCondicao("");
-  }
-
-  function removerCondicao(idx: number) {
-    const id = `cond-${idx}`;
-    setRemovingIds((prev) => new Set(prev).add(id));
-    setTimeout(() => {
-      set("condicoes", perfil.condicoes.filter((_, i) => i !== idx));
-      setRemovingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-    }, 250);
-  }
-
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIdx = perfil.condicoes.findIndex(
-      (_, i) => `cond-${i}` === active.id
-    );
-    const newIdx = perfil.condicoes.findIndex(
-      (_, i) => `cond-${i}` === over.id
-    );
-    if (oldIdx !== -1 && newIdx !== -1) {
-      set("condicoes", arrayMove(perfil.condicoes, oldIdx, newIdx));
-    }
-  }
-
   function aoSalvar(e: React.FormEvent) {
     e.preventDefault();
     salvarPerfil(perfil);
     toast.success("Perfil salvo com sucesso!");
   }
-
-  const condicaoIds = perfil.condicoes.map((_, i) => `cond-${i}`);
 
   return (
     <>
@@ -351,81 +204,6 @@ export default function PerfilPage() {
             </section>
 
             
-
-            {/* Condições */}
-            <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur sm:p-6">
-              <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-zinc-400">
-                Condições do orçamento
-              </h3>
-
-              {perfil.condicoes.length > 0 && (
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleDragEnd}
-                >
-                  <SortableContext
-                    items={condicaoIds}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <ul className="mb-4 space-y-2">
-                      {perfil.condicoes.map((cond, idx) => (
-                        <CondicaoItem
-                          key={condicaoIds[idx]}
-                          id={condicaoIds[idx]}
-                          cond={cond}
-                          onRemove={() => removerCondicao(idx)}
-                          isRemoving={removingIds.has(condicaoIds[idx])}
-                        />
-                      ))}
-                    </ul>
-                  </SortableContext>
-                </DndContext>
-              )}
-
-              <div className="relative">
-                <input
-                  className={inputCls + " pr-24"}
-                  type="text"
-                  placeholder="Ex: Tinta fornecida pelo cliente."
-                  maxLength={MAX_CHARS}
-                  value={novaCondicao}
-                  onChange={(e) => setNovaCondicao(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      adicionarCondicao();
-                    }
-                  }}
-                />
-                <div className="pointer-events-none absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-2">
-                  <span className="text-xs text-zinc-500 tabular-nums">
-                    {novaCondicao.length}/{MAX_CHARS}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={adicionarCondicao}
-                    disabled={!novaCondicao.trim()}
-                    className={`pointer-events-auto flex h-7 w-7 items-center justify-center rounded-lg transition ${novaCondicao.trim() ? "bg-brand-400 text-zinc-950 hover:bg-brand-300 cursor-pointer" : "bg-zinc-700 text-zinc-400 cursor-not-allowed"}`}
-                    aria-label="Adicionar condição"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-3.5 w-3.5"
-                    >
-                      <line x1="22" y1="2" x2="11" y2="13" />
-                      <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            </section>
 
             <div className="flex flex-col-reverse gap-3 sm:flex-row">
               <button

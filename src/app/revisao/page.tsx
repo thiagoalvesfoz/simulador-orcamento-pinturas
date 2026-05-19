@@ -1,31 +1,62 @@
 "use client";
 
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import BadgeIA from "@/components/BadgeIA";
 import Header from "@/components/Header";
 import { calcularOrcamento, calcularSubtotalItem } from "@/lib/pricing";
+import { CATALOG_BY_ID, TIPO_TO_DEFAULT_BAND } from "@/lib/pricing-catalog";
 import {
   carregarOrcamento,
   carregarPerfil,
   gerarNumeroOrcamento,
   limparOrcamento,
   salvarOrcamento,
+  salvarPerfil,
 } from "@/lib/storage";
 import {
   COMPLEXIDADES,
   COMPLEXIDADES_LABEL,
-  FATORES,
+  ESTADOS_SUPERFICIE,
+  ESTADOS_SUPERFICIE_LABEL,
   FATORES_LABEL,
+  OCUPACOES,
+  OCUPACOES_LABEL,
+  PATOLOGIAS,
+  PATOLOGIAS_LABEL,
+  PREPARACOES,
+  PREPARACOES_LABEL,
+  SERVICE_BAND_LABELS,
   TIPOS_SERVICO,
   TIPOS_SERVICO_LABEL,
   UNIDADE_POR_TIPO,
   type Complexidade,
+  type EstadoSuperficie,
   type Fator,
   type ItemOrcamento,
+  type Ocupacao,
+  type Patologia,
+  type Preparacao,
   type RascunhoOrcamento,
+  type ServiceBandId,
   type TipoServico,
 } from "@/lib/types";
 
@@ -33,6 +64,95 @@ const formatadorBRL = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
 });
+
+const FATORES_EXECUCAO: Fator[] = ["altura_alta", "acesso_dificil"];
+
+const TIPO_TO_BANDS: Record<TipoServico, ServiceBandId[]> = {
+  pintura_parede:       ["pintura_simples_interna", "pintura_completa_interna", "pintura_alto_padrao"],
+  pintura_teto:         ["teto_simples", "teto_completo"],
+  pintura_externa:      ["fachada_simples", "fachada_completa"],
+  textura:              ["textura_rolada", "textura_projetada"],
+  efeito_decorativo:    ["cimento_queimado", "marmorizacao_simples", "marmorizacao_premium", "efeito_veludo", "efeito_linho"],
+  pintura_grade:        ["grade_m2"],
+  pintura_telhado:      ["telhado_simples", "telhado_tratamento"],
+  pintura_piso:         ["piso_calcada", "piso_epoxi", "piso_demarcacao"],
+  pintura_porta_janela: ["porta_lisa", "janela"],
+  pintura_portao:       ["portao_pequeno", "portao_medio", "portao_grande"],
+};
+
+type EditPatch = {
+  tipo: TipoServico;
+  quantidade: number;
+  complexidade: Complexidade;
+  fatores: Fator[];
+  serviceBandId: ServiceBandId;
+  estado_superficie?: EstadoSuperficie;
+  patologias: Patologia[];
+  preparacoes: Preparacao[];
+  ocupacao?: Ocupacao;
+};
+
+const DEFAULTS_CONDICOES = [
+  "O prazo para finalização dos serviços é de 15 dias úteis.",
+  "Para início do trabalho recebemos 20% do valor antecipado.",
+  "Este orçamento é válido por 20 dias corridos a partir da data de emissão.",
+];
+
+const MAX_CHARS_COND = 135;
+
+function CondicaoItem({
+  id,
+  cond,
+  onRemove,
+  isRemoving,
+}: {
+  id: string;
+  cond: string;
+  onRemove: () => void;
+  isRemoving?: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return (
+    <li
+      ref={setNodeRef}
+      style={{
+        transform: isRemoving ? "translateY(6px)" : CSS.Transform.toString(transform),
+        transition: isRemoving ? "opacity 250ms ease, transform 250ms ease" : transition,
+        opacity: isDragging ? 0.4 : isRemoving ? 0 : 1,
+        zIndex: isDragging ? 10 : undefined,
+      }}
+      className="flex cursor-grab items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-950/60 px-3 py-3 touch-none active:cursor-grabbing"
+      suppressHydrationWarning
+      {...attributes}
+      {...listeners}
+    >
+      <span className="shrink-0 text-zinc-600">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+          <circle cx="6" cy="6" r="1.5" /><circle cx="12" cy="6" r="1.5" /><circle cx="18" cy="6" r="1.5" />
+          <circle cx="6" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="18" cy="12" r="1.5" />
+          <circle cx="6" cy="18" r="1.5" /><circle cx="12" cy="18" r="1.5" /><circle cx="18" cy="18" r="1.5" />
+        </svg>
+      </span>
+      <span className="flex-1 text-sm text-zinc-200 leading-snug">{cond}</span>
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onRemove(); }}
+        onPointerDown={(e) => e.stopPropagation()}
+        aria-label="Remover condição"
+        className="shrink-0 rounded-lg p-1.5 text-red-400 transition hover:bg-red-500/10 cursor-pointer"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+          <path d="M10 11v6" /><path d="M14 11v6" />
+          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+        </svg>
+      </button>
+    </li>
+  );
+}
+
+// ── Shared UI components ──────────────────────────────────────────────────────
 
 function StepBadge({
   step,
@@ -122,6 +242,31 @@ function SelectDark({
   );
 }
 
+function ChipToggle({
+  label,
+  ativo,
+  onClick,
+}: {
+  label: string;
+  ativo: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        "cursor-pointer rounded-full border px-3 py-2 text-xs font-medium transition text-left " +
+        (ativo
+          ? "border-brand-400/25 bg-brand-400/8 text-brand-300"
+          : "border-zinc-700 bg-zinc-800/50 text-zinc-200 hover:border-brand-400/60 hover:bg-zinc-800 hover:text-white")
+      }
+    >
+      {label}
+    </button>
+  );
+}
+
 function SliderValor({
   min,
   max,
@@ -170,7 +315,7 @@ function SliderValor({
   );
 }
 
-// ── Item card (collapsed view) ───────────────────────────────────────────────
+// ── Item card (collapsed view) ────────────────────────────────────────────────
 
 function ItemCard({
   item,
@@ -184,16 +329,45 @@ function ItemCard({
   onRemove: () => void;
 }) {
   const unidadeLabel = item.unidade === "m2" ? "m²" : "un";
+  const bandLabel = item.serviceBandId
+    ? SERVICE_BAND_LABELS[item.serviceBandId]
+    : TIPOS_SERVICO_LABEL[item.tipo];
+  const band = item.serviceBandId ? CATALOG_BY_ID[item.serviceBandId] : null;
+  const bandRange = band
+    ? `R$${band.min}–${band.max}${band.unidade === "m2" ? "/m²" : "/un"}`
+    : null;
+  const temAlertas = (item.explicacao?.alertas?.length ?? 0) > 0;
+  const nExtras =
+    item.fatores.filter((f) => f === "altura_alta" || f === "acesso_dificil").length +
+    (item.patologias?.length ?? 0);
+
   return (
     <div className="flex items-center gap-3 rounded-xl border border-zinc-700 bg-zinc-950/50 px-4 py-3">
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-zinc-100">
-          {TIPOS_SERVICO_LABEL[item.tipo]}
-        </p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm font-medium text-zinc-100 truncate">{bandLabel}</p>
+          {temAlertas && (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-3.5 w-3.5 shrink-0 text-amber-400"
+            >
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          )}
+        </div>
         <p className="mt-0.5 text-xs text-zinc-400">
-          {item.quantidade} {unidadeLabel} · {COMPLEXIDADES_LABEL[item.complexidade]}
-          {item.fatores.length > 0 && (
-            <> · +{item.fatores.length} {item.fatores.length === 1 ? "fator" : "fatores"}</>
+          {item.quantidade} {unidadeLabel}
+          {bandRange && <> · {bandRange}</>}
+          {nExtras > 0 && (
+            <> · {nExtras} {nExtras === 1 ? "fator" : "fatores"}</>
           )}
         </p>
       </div>
@@ -232,7 +406,7 @@ function ItemCard({
   );
 }
 
-// ── Item edit form (expanded view) ──────────────────────────────────────────
+// ── Item edit form (expanded view) ────────────────────────────────────────────
 
 function ItemEditForm({
   item,
@@ -240,27 +414,46 @@ function ItemEditForm({
   onCancel,
 }: {
   item: ItemOrcamento;
-  onConfirm: (patch: Pick<ItemOrcamento, "tipo" | "quantidade" | "complexidade" | "fatores">) => void;
+  onConfirm: (patch: EditPatch) => void;
   onCancel: () => void;
 }) {
   const [tipo, setTipo] = useState<TipoServico>(item.tipo);
+  const [bandId, setBandId] = useState<ServiceBandId>(
+    item.serviceBandId ?? TIPO_TO_DEFAULT_BAND[item.tipo]
+  );
   const [quantidade, setQuantidade] = useState(item.quantidade);
   const [complexidade, setComplexidade] = useState<Complexidade>(item.complexidade);
-  const [fatores, setFatores] = useState<Fator[]>(item.fatores);
+  const [fatores, setFatores] = useState<Fator[]>(
+    item.fatores.filter((f) => f === "altura_alta" || f === "acesso_dificil")
+  );
+  const [patologias, setPatologias] = useState<Patologia[]>(item.patologias ?? []);
+  const [preparacoes, setPreparacoes] = useState<Preparacao[]>(item.preparacoes ?? []);
+  const [estadoSup, setEstadoSup] = useState<EstadoSuperficie | "">(
+    item.estado_superficie ?? ""
+  );
+  const [ocupacao, setOcupacao] = useState<Ocupacao | "">(item.ocupacao ?? "");
 
   const unidade = UNIDADE_POR_TIPO[tipo];
-
-  function toggleFator(f: Fator) {
-    setFatores((prev) =>
-      prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]
-    );
-  }
 
   function handleTipoChange(v: string) {
     const novoTipo = v as TipoServico;
     setTipo(novoTipo);
-    const novaUnidade = UNIDADE_POR_TIPO[novoTipo];
-    if (novaUnidade !== unidade) setQuantidade(novaUnidade === "un" ? 1 : 20);
+    setBandId(TIPO_TO_DEFAULT_BAND[novoTipo]);
+    if (UNIDADE_POR_TIPO[novoTipo] !== unidade) {
+      setQuantidade(UNIDADE_POR_TIPO[novoTipo] === "un" ? 1 : 20);
+    }
+  }
+
+  function toggleFator(f: Fator) {
+    setFatores((p) => (p.includes(f) ? p.filter((x) => x !== f) : [...p, f]));
+  }
+
+  function togglePatologia(p: Patologia) {
+    setPatologias((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]));
+  }
+
+  function togglePreparacao(p: Preparacao) {
+    setPreparacoes((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]));
   }
 
   return (
@@ -273,6 +466,17 @@ function ItemEditForm({
         />
       </Campo>
 
+      <Campo label="Variante do serviço">
+        <SelectDark
+          value={bandId}
+          onChange={(v) => setBandId(v as ServiceBandId)}
+          options={TIPO_TO_BANDS[tipo].map((id) => ({
+            value: id,
+            label: SERVICE_BAND_LABELS[id],
+          }))}
+        />
+      </Campo>
+
       <div className="grid grid-cols-2 gap-4">
         <Campo label={unidade === "m2" ? "Área (m²)" : "Quantidade (un)"}>
           <input
@@ -280,13 +484,11 @@ function ItemEditForm({
             min={1}
             step={unidade === "m2" ? "0.5" : "1"}
             value={quantidade}
-            onChange={(e) =>
-              setQuantidade(Math.max(1, Number(e.target.value) || 0))
-            }
+            onChange={(e) => setQuantidade(Math.max(1, Number(e.target.value) || 0))}
             className="w-full rounded-xl border border-zinc-700 bg-zinc-950/70 px-4 py-3 text-base text-zinc-100 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
           />
         </Campo>
-        <Campo label="Complexidade">
+        <Campo label="Qualidade do acabamento">
           <SelectDark
             value={complexidade}
             onChange={(v) => setComplexidade(v as Complexidade)}
@@ -295,33 +497,87 @@ function ItemEditForm({
         </Campo>
       </div>
 
-      <Campo label="Fatores adicionais">
+      <Campo label="Dificuldade de execução">
         <div className="grid grid-cols-2 gap-2">
-          {FATORES.map((f) => {
-            const ativo = fatores.includes(f);
-            return (
-              <button
-                key={f}
-                type="button"
-                onClick={() => toggleFator(f)}
-                className={
-                  "cursor-pointer rounded-full border px-4 py-2.5 text-xs font-medium transition " +
-                  (ativo
-                    ? "border-brand-400/25 bg-brand-400/8 text-brand-300"
-                    : "border-zinc-700 bg-zinc-800/50 text-zinc-200 hover:border-brand-400/60 hover:bg-zinc-800 hover:text-white")
-                }
-              >
-                {FATORES_LABEL[f]}
-              </button>
-            );
-          })}
+          {FATORES_EXECUCAO.map((f) => (
+            <ChipToggle
+              key={f}
+              label={FATORES_LABEL[f]}
+              ativo={fatores.includes(f)}
+              onClick={() => toggleFator(f)}
+            />
+          ))}
         </div>
       </Campo>
+
+      <Campo label="Patologias detectadas">
+        <div className="grid grid-cols-2 gap-2">
+          {PATOLOGIAS.map((p) => (
+            <ChipToggle
+              key={p}
+              label={PATOLOGIAS_LABEL[p]}
+              ativo={patologias.includes(p)}
+              onClick={() => togglePatologia(p)}
+            />
+          ))}
+        </div>
+      </Campo>
+
+      <Campo label="Preparações incluídas">
+        <div className="grid grid-cols-2 gap-2">
+          {PREPARACOES.map((p) => (
+            <ChipToggle
+              key={p}
+              label={PREPARACOES_LABEL[p]}
+              ativo={preparacoes.includes(p)}
+              onClick={() => togglePreparacao(p)}
+            />
+          ))}
+        </div>
+      </Campo>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Campo label="Estado da superfície">
+          <SelectDark
+            value={estadoSup}
+            onChange={(v) => setEstadoSup(v as EstadoSuperficie | "")}
+            options={[
+              { value: "", label: "Não informado" },
+              ...ESTADOS_SUPERFICIE.map((e) => ({
+                value: e,
+                label: ESTADOS_SUPERFICIE_LABEL[e],
+              })),
+            ]}
+          />
+        </Campo>
+        <Campo label="Ocupação do imóvel">
+          <SelectDark
+            value={ocupacao}
+            onChange={(v) => setOcupacao(v as Ocupacao | "")}
+            options={[
+              { value: "", label: "Não informado" },
+              ...OCUPACOES.map((o) => ({ value: o, label: OCUPACOES_LABEL[o] })),
+            ]}
+          />
+        </Campo>
+      </div>
 
       <div className="flex gap-2">
         <button
           type="button"
-          onClick={() => onConfirm({ tipo, quantidade, complexidade, fatores })}
+          onClick={() =>
+            onConfirm({
+              tipo,
+              quantidade,
+              complexidade,
+              fatores,
+              serviceBandId: bandId,
+              estado_superficie: estadoSup !== "" ? estadoSup : undefined,
+              patologias,
+              preparacoes,
+              ocupacao: ocupacao !== "" ? ocupacao : undefined,
+            })
+          }
           className="flex-1 rounded-xl bg-brand-400 px-4 py-2.5 text-sm font-bold text-zinc-950 transition hover:bg-brand-300"
         >
           Confirmar
@@ -338,7 +594,7 @@ function ItemEditForm({
   );
 }
 
-// ── Page ────────────────────────────────────────────────────────────────────
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function RevisaoPage() {
   const router = useRouter();
@@ -355,11 +611,20 @@ export default function RevisaoPage() {
   const [step, setStep] = useState<1 | 2>(1);
   const [podeCompartilharArquivo, setPodeCompartilharArquivo] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [condicoes, setCondicoes] = useState<string[]>([]);
+  const [novaCondicao, setNovaCondicao] = useState("");
+  const [removingCondIds, setRemovingCondIds] = useState<Set<string>>(new Set());
+
+  const condSensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   useEffect(() => {
     try {
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       const f = new File([""], "test.pdf", { type: "application/pdf" });
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPodeCompartilharArquivo(isMobile && !!navigator.canShare?.({ files: [f] }));
     } catch {
       setPodeCompartilharArquivo(false);
@@ -384,6 +649,8 @@ export default function RevisaoPage() {
     setRascunho(carregado);
     const perfil = carregarPerfil();
     if (!perfil || !perfil.nome.trim()) setPerfilIncompleto(true);
+     
+    setCondicoes(perfil?.condicoes ?? DEFAULTS_CONDICOES);
     setCarregando(false);
   }, [router]);
 
@@ -394,22 +661,44 @@ export default function RevisaoPage() {
   useEffect(() => {
     if (step !== 2) return;
     const perfil = carregarPerfil();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPerfilIncompleto(!perfil || !perfil.nome.trim());
   }, [step]);
 
   const dados = rascunho?.dados;
 
-  // ── Item management ──────────────────────────────────────────────────────
+  // ── Item management ───────────────────────────────────────────────────────
 
-  function atualizarItem(
-    id: string,
-    patch: Pick<ItemOrcamento, "tipo" | "quantidade" | "complexidade" | "fatores">
-  ) {
+  function atualizarItem(id: string, patch: EditPatch) {
     setRascunho((prev) => {
       if (!prev) return prev;
       const unidade = UNIDADE_POR_TIPO[patch.tipo];
-      const { subtotal } = calcularSubtotalItem(patch);
-      const novoItem: ItemOrcamento = { id, unidade, subtotal, ...patch };
+      const { subtotal, explicacao } = calcularSubtotalItem({
+        tipo: patch.tipo,
+        quantidade: patch.quantidade,
+        complexidade: patch.complexidade,
+        fatores: patch.fatores,
+        serviceBandId: patch.serviceBandId,
+        estado_superficie: patch.estado_superficie ?? null,
+        patologias: patch.patologias.length > 0 ? patch.patologias : null,
+        preparacoes: patch.preparacoes.length > 0 ? patch.preparacoes : null,
+        ocupacao: patch.ocupacao ?? null,
+      });
+      const novoItem: ItemOrcamento = {
+        id,
+        unidade,
+        subtotal,
+        tipo: patch.tipo,
+        quantidade: patch.quantidade,
+        complexidade: patch.complexidade,
+        fatores: patch.fatores,
+        serviceBandId: patch.serviceBandId,
+        estado_superficie: patch.estado_superficie,
+        patologias: patch.patologias.length > 0 ? patch.patologias : undefined,
+        preparacoes: patch.preparacoes.length > 0 ? patch.preparacoes : undefined,
+        ocupacao: patch.ocupacao,
+        explicacao,
+      };
       const novoItens = prev.dados.itens.map((i) => (i.id === id ? novoItem : i));
       const faixa = calcularOrcamento(novoItens);
       const valorFinal =
@@ -426,13 +715,25 @@ export default function RevisaoPage() {
 
   function adicionarItem() {
     const novoId = `item-${Math.random().toString(36).slice(2, 7)}`;
-    const defaults = { tipo: "pintura_parede" as TipoServico, quantidade: 20, complexidade: "media" as Complexidade, fatores: [] as Fator[] };
-    const { subtotal } = calcularSubtotalItem(defaults);
+    const tipo = "pintura_parede" as TipoServico;
+    const serviceBandId = TIPO_TO_DEFAULT_BAND[tipo];
+    const { subtotal, explicacao } = calcularSubtotalItem({
+      tipo,
+      quantidade: 20,
+      complexidade: "media",
+      fatores: [],
+      serviceBandId,
+    });
     const novoItem: ItemOrcamento = {
       id: novoId,
       unidade: "m2",
+      tipo,
+      quantidade: 20,
+      complexidade: "media",
+      fatores: [],
+      serviceBandId,
       subtotal,
-      ...defaults,
+      explicacao,
     };
     setRascunho((prev) => {
       if (!prev) return prev;
@@ -475,14 +776,44 @@ export default function RevisaoPage() {
     );
   }
 
-  // ── PDF generation ───────────────────────────────────────────────────────
+  function adicionarCondicao() {
+    const txt = novaCondicao.trim();
+    if (!txt) return;
+    setCondicoes((prev) => [...prev, txt]);
+    setNovaCondicao("");
+  }
+
+  function removerCondicao(idx: number) {
+    const id = `cond-${idx}`;
+    setRemovingCondIds((prev) => new Set(prev).add(id));
+    setTimeout(() => {
+      setCondicoes((prev) => prev.filter((_, i) => i !== idx));
+      setRemovingCondIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }, 250);
+  }
+
+  function handleCondDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIdx = condicoes.findIndex((_, i) => `cond-${i}` === active.id);
+    const newIdx = condicoes.findIndex((_, i) => `cond-${i}` === over.id);
+    if (oldIdx !== -1 && newIdx !== -1) setCondicoes(arrayMove(condicoes, oldIdx, newIdx));
+  }
+
+  // ── PDF generation ────────────────────────────────────────────────────────
 
   async function aoGerarPdf() {
     if (!rascunho || baixando) return;
     setBaixando(true);
     setProgresso(8);
     try {
-      const perfil = carregarPerfil();
+      const perfilBase = carregarPerfil();
+      const perfilFinal = { ...(perfilBase ?? { nome: "", telefone: "", email: "", cidade: "" }), condicoes };
+      if (perfilBase) salvarPerfil(perfilFinal);
       const numero = numeroGerado || gerarNumeroOrcamento();
       const resposta = await fetch("/api/gerar-pdf", {
         method: "POST",
@@ -491,7 +822,7 @@ export default function RevisaoPage() {
           ...rascunho,
           nome_cliente: nomeCliente.trim() || undefined,
           observacoes: observacoes.trim() || undefined,
-          perfil: perfil ?? undefined,
+          perfil: perfilFinal,
           numero_orcamento: numero,
         }),
       });
@@ -511,13 +842,10 @@ export default function RevisaoPage() {
     }
   }
 
-  // ── Success screen ───────────────────────────────────────────────────────
+  // ── Success screen ────────────────────────────────────────────────────────
 
   if (baixado && dados) {
     const nomeCli = nomeCliente.trim();
-    const somaSubtotais = dados.itens.reduce((s, i) => s + i.subtotal, 0);
-    const temAjuste = dados.valor_final !== somaSubtotais;
-
     async function compartilhar() {
       if (!pdfUrl) return;
       const response = await fetch(pdfUrl);
@@ -570,20 +898,19 @@ export default function RevisaoPage() {
                   <div key={item.id} className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-zinc-200">
-                        {TIPOS_SERVICO_LABEL[item.tipo]}
+                        {item.serviceBandId
+                          ? SERVICE_BAND_LABELS[item.serviceBandId]
+                          : TIPOS_SERVICO_LABEL[item.tipo]}
                       </p>
                       <p className="text-xs text-zinc-500">
                         {item.quantidade} {item.unidade === "m2" ? "m²" : "un"} · {COMPLEXIDADES_LABEL[item.complexidade]}
                       </p>
                     </div>
-                    <p className="shrink-0 text-sm font-semibold tabular-nums text-zinc-300">
-                      {formatadorBRL.format(item.subtotal)}
-                    </p>
                   </div>
                 ))}
-                <div className={`flex items-center justify-between border-t pt-2.5 ${temAjuste ? "border-zinc-700" : "border-brand-400/20"}`}>
+                <div className="flex items-center justify-between border-t border-brand-400/20 pt-2.5">
                   <p className="text-sm font-bold text-zinc-200">
-                    {temAjuste ? "Valor negociado" : "Total"}
+                    Total
                   </p>
                   <p className="text-sm font-bold tabular-nums text-brand-400">
                     {formatadorBRL.format(dados.valor_final)}
@@ -671,8 +998,9 @@ export default function RevisaoPage() {
   }
 
   const itens = dados.itens;
+  const alertas = itens.flatMap((i) => i.explicacao?.alertas ?? []);
 
-  // ── Edit / review screen ─────────────────────────────────────────────────
+  // ── Edit / review screen ──────────────────────────────────────────────────
 
   return (
     <>
@@ -724,7 +1052,11 @@ export default function RevisaoPage() {
                   <div className="mt-0.5">
                     <p className="text-xs text-zinc-400">
                       {itens.length} {itens.length === 1 ? "serviço" : "serviços"}
-                      {itens.length === 1 && ` · ${TIPOS_SERVICO_LABEL[itens[0].tipo]}`}
+                      {itens.length === 1 && ` · ${
+                        itens[0].serviceBandId
+                          ? SERVICE_BAND_LABELS[itens[0].serviceBandId]
+                          : TIPOS_SERVICO_LABEL[itens[0].tipo]
+                      }`}
                     </p>
                     <p className="text-base font-bold text-brand-400 tabular-nums">
                       {formatadorBRL.format(dados.valor_final)}
@@ -751,6 +1083,34 @@ export default function RevisaoPage() {
                       {rascunho.descricao}
                     </p>
                   </Campo>
+
+                  {/* Alertas */}
+                  {alertas.length > 0 && (
+                    <div className="mb-4 space-y-1.5">
+                      {alertas.map((alerta, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2.5"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-3.5 w-3.5 shrink-0 text-amber-400 mt-0.5"
+                          >
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                            <line x1="12" y1="9" x2="12" y2="13" />
+                            <line x1="12" y1="17" x2="12.01" y2="17" />
+                          </svg>
+                          <p className="text-xs text-amber-300">{alerta}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Lista de itens */}
                   <div className="mb-4">
@@ -894,6 +1254,52 @@ export default function RevisaoPage() {
                       className="w-full resize-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-4 py-3 text-base text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
                     />
                   </Campo>
+
+                  <div className="mt-4 mb-8">
+                    <p className="mb-2 text-xs font-medium text-zinc-400">Condições do orçamento</p>
+                    {condicoes.length > 0 && (
+                      <DndContext sensors={condSensors} collisionDetection={closestCenter} onDragEnd={handleCondDragEnd}>
+                        <SortableContext items={condicoes.map((_, i) => `cond-${i}`)} strategy={verticalListSortingStrategy}>
+                          <ul className="mb-2 space-y-2">
+                            {condicoes.map((cond, idx) => (
+                              <CondicaoItem
+                                key={`cond-${idx}`}
+                                id={`cond-${idx}`}
+                                cond={cond}
+                                onRemove={() => removerCondicao(idx)}
+                                isRemoving={removingCondIds.has(`cond-${idx}`)}
+                              />
+                            ))}
+                          </ul>
+                        </SortableContext>
+                      </DndContext>
+                    )}
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Ex: Tinta fornecida pelo cliente."
+                        maxLength={MAX_CHARS_COND}
+                        value={novaCondicao}
+                        onChange={(e) => setNovaCondicao(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); adicionarCondicao(); } }}
+                        className="w-full rounded-xl border border-zinc-700 bg-zinc-950/70 px-4 py-3 pr-24 text-base text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
+                      />
+                      <div className="pointer-events-none absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-2">
+                        <span className="text-xs text-zinc-500 tabular-nums">{novaCondicao.length}/{MAX_CHARS_COND}</span>
+                        <button
+                          type="button"
+                          onClick={adicionarCondicao}
+                          disabled={!novaCondicao.trim()}
+                          className={`pointer-events-auto flex h-7 w-7 items-center justify-center rounded-lg transition ${novaCondicao.trim() ? "bg-brand-400 text-zinc-950 hover:bg-brand-300 cursor-pointer" : "bg-zinc-700 text-zinc-400 cursor-not-allowed"}`}
+                          aria-label="Adicionar condição"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
+                            <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
 
                   <button
                     type="button"
