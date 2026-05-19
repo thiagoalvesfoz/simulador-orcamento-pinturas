@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import BadgeIA from "@/components/BadgeIA";
 import Header from "@/components/Header";
 import { calcularFaixaPreco } from "@/lib/pricing";
-import { carregarOrcamento, carregarPerfil, gerarNumeroOrcamento, salvarOrcamento } from "@/lib/storage";
+import { carregarOrcamento, carregarPerfil, gerarNumeroOrcamento, limparOrcamento, salvarOrcamento } from "@/lib/storage";
 import {
   COMPLEXIDADES,
   COMPLEXIDADES_LABEL,
@@ -73,6 +73,9 @@ export default function RevisaoPage() {
   const [carregando, setCarregando] = useState(true);
   const [baixando, setBaixando] = useState(false);
   const [progresso, setProgresso] = useState(0);
+  const [baixado, setBaixado] = useState(false);
+  const [numeroGerado, setNumeroGerado] = useState("");
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [nomeCliente, setNomeCliente] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [perfilIncompleto, setPerfilIncompleto] = useState(false);
@@ -97,7 +100,6 @@ export default function RevisaoPage() {
     const perfil = carregarPerfil();
     if (!perfil || !perfil.nome.trim()) setPerfilIncompleto(true);
     setCarregando(false);
-    toast.success("Orçamento pronto para revisão", { id: "revisao-extraido" });
   }, [router]);
 
   useEffect(() => {
@@ -167,7 +169,6 @@ export default function RevisaoPage() {
     try {
       const perfil = carregarPerfil();
       const numero = gerarNumeroOrcamento();
-      await new Promise((r) => setTimeout(r, 3000));
       const resposta = await fetch("/api/gerar-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -184,20 +185,147 @@ export default function RevisaoPage() {
       setProgresso(100);
       await new Promise((r) => setTimeout(r, 400));
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `orcamento-${numero}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success("PDF baixado com sucesso!");
+      setPdfUrl(url);
+      setNumeroGerado(numero);
+      setBaixado(true);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao gerar PDF.");
+      toast.error("Não foi possível gerar o PDF. Tente novamente.");
     } finally {
       setBaixando(false);
       setProgresso(0);
     }
+  }
+
+  if (baixado && dados) {
+    const perfil = carregarPerfil();
+    const nomePintor = perfil?.nome?.trim() ?? "";
+    const nomeCli = nomeCliente.trim();
+    const valor = formatadorBRL.format(dados.valor_final);
+    const textoWa = [
+      `Olá${nomeCli ? ` ${nomeCli}` : ""}! Segue o orçamento ${numeroGerado} no valor de ${valor}.`,
+      nomePintor ? `Qualquer dúvida estou à disposição. — ${nomePintor}` : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    const waUrl = `https://wa.me/?text=${encodeURIComponent(textoWa)}`;
+
+    return (
+      <>
+        <Header />
+        <main className="flex flex-1 flex-col items-center px-4 pt-16 pb-12">
+          <div className="w-full max-w-sm text-center">
+            <div className="animate-circle-pop mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-brand-400/15">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-8 w-8 text-brand-400"
+              >
+                <polyline points="20 6 9 17 4 12" className="animate-check-draw" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-extrabold tracking-tight text-white">
+              Orçamento gerado!
+            </h2>
+            <p className="mt-2 text-sm text-zinc-400">
+              {numeroGerado}{nomeCli && <> · {nomeCli}</>}
+            </p>
+
+            <div className="mt-6 w-full rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 text-left">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-zinc-500">Serviço</p>
+                  <p className="mt-0.5 text-sm font-medium text-zinc-200">{TIPOS_SERVICO_LABEL[dados.tipo]}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-500">Área</p>
+                  <p className="mt-0.5 text-sm font-medium text-zinc-200">{dados.area_m2} m²</p>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-500">Complexidade</p>
+                  <p className="mt-0.5 text-sm font-medium text-zinc-200">{COMPLEXIDADES_LABEL[dados.complexidade]}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-500">Valor final</p>
+                  <p className="mt-0.5 text-sm font-bold text-brand-400 tabular-nums">{valor}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3 w-full">
+              {pdfUrl && (
+                <a
+                  href={pdfUrl}
+                  download={`orcamento-${numeroGerado}.pdf`}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-brand-400 px-5 py-3.5 text-sm font-bold text-zinc-950 shadow-lg shadow-brand-400/20 transition hover:bg-brand-300"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-4 w-4"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  Baixar PDF
+                </a>
+              )}
+              <a
+                href={waUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-5 py-3.5 text-sm font-bold text-white shadow-lg transition hover:bg-[#1fbb58]"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="h-5 w-5"
+                >
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.122.553 4.112 1.522 5.845L.057 23.082a.75.75 0 0 0 .917.919l5.339-1.47A11.95 11.95 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.698 9.698 0 0 1-4.96-1.364l-.355-.212-3.687 1.016 1.03-3.596-.232-.373A9.699 9.699 0 0 1 2.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z" />
+                </svg>
+                Compartilhar via WhatsApp
+              </a>
+              <button
+                type="button"
+                onClick={() => {
+                  if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+                  limparOrcamento();
+                  router.push("/");
+                }}
+                className="flex items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900 px-5 py-3.5 text-sm font-bold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-800"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Novo orçamento
+              </button>
+            </div>
+          </div>
+        </main>
+      </>
+    );
   }
 
   if (carregando || !rascunho || !dados || !faixaRecalculada) {
@@ -317,7 +445,7 @@ export default function RevisaoPage() {
                           area_m2: Math.max(1, Number(e.target.value) || 0),
                         })
                       }
-                      className="w-full rounded-xl border border-zinc-700 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
+                      className="w-full rounded-xl border border-zinc-700 bg-zinc-950/70 px-4 py-3 text-base text-zinc-100 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
                     />
                   </Campo>
 
@@ -345,7 +473,7 @@ export default function RevisaoPage() {
                           type="button"
                           onClick={() => alternarFator(f)}
                           className={
-                            "cursor-pointer rounded-full border px-4 py-1.5 text-xs font-medium transition " +
+                            "cursor-pointer rounded-full border px-4 py-3 text-xs font-medium transition " +
                             (ativo
                               ? "border-brand-400/25 bg-brand-400/8 text-brand-300"
                               : "border-zinc-700 bg-zinc-800/50 text-zinc-200 hover:border-brand-400/60 hover:bg-zinc-800 hover:text-white")
@@ -465,7 +593,7 @@ export default function RevisaoPage() {
                     placeholder="Ex: João Silva"
                     value={nomeCliente}
                     onChange={(e) => setNomeCliente(e.target.value)}
-                    className="w-full rounded-xl border border-zinc-700 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
+                    className="w-full rounded-xl border border-zinc-700 bg-zinc-950/70 px-4 py-3 text-base text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
                   />
                 </Campo>
 
@@ -506,7 +634,7 @@ export default function RevisaoPage() {
                       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                       <polyline points="14 2 14 8 20 8" />
                     </svg>
-                    {baixando ? "Montando seu orçamento..." : "Baixar meu orçamento"}
+                    {baixando ? "Montando seu orçamento..." : "Gerar orçamento"}
                   </span>
                 </button>
               </div>
@@ -551,7 +679,7 @@ function SelectDark({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full appearance-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-4 py-3 pr-10 text-sm text-zinc-100 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
+        className="w-full appearance-none rounded-xl border border-zinc-700 bg-zinc-950/70 px-4 py-3 pr-10 text-base text-zinc-100 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value} className="bg-zinc-900">
@@ -595,7 +723,7 @@ function SliderValor({
 
   return (
     <div className="mt-4">
-      <div className="relative h-5">
+      <div className="relative h-11">
         <div
           aria-hidden
           className="pointer-events-none absolute top-1/2 left-0 right-0 h-1.5 -translate-y-1/2 rounded-full bg-zinc-800"
@@ -613,7 +741,7 @@ function SliderValor({
           step={10}
           value={Math.min(Math.max(valor, sliderMin), sliderMax)}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="relative w-full appearance-none bg-transparent cursor-pointer h-5 [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-brand-400 [&::-webkit-slider-thumb]:shadow [&::-webkit-slider-thumb]:-mt-1.75 [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-transparent [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-brand-400"
+          className="relative w-full appearance-none bg-transparent cursor-pointer h-11 [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-brand-400 [&::-webkit-slider-thumb]:shadow [&::-webkit-slider-thumb]:-mt-[0.5625rem] [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-transparent [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-brand-400"
         />
       </div>
       <div className="mt-2 flex justify-between text-xs text-zinc-400 tabular-nums">

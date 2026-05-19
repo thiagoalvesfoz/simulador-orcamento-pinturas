@@ -37,7 +37,7 @@ const DEFAULTS: PerfilPintor = {
 };
 
 const inputCls =
-  "w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition focus:border-brand-400 focus:ring-1 focus:ring-brand-400";
+  "w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-base text-white placeholder-zinc-500 outline-none transition focus:border-brand-400 focus:ring-1 focus:ring-brand-400";
 
 const MAX_CHARS = 135;
 
@@ -317,7 +317,7 @@ export default function PerfilPage() {
                     onChange={(e) => set("nome", e.target.value)}
                   />
                 </Campo>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Campo label="Telefone / WhatsApp">
                     <input
                       className={inputCls}
@@ -427,7 +427,7 @@ export default function PerfilPage() {
               </div>
             </section>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col-reverse gap-3 sm:flex-row">
               <button
                 type="button"
                 onClick={() => router.back()}

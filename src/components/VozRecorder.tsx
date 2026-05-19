@@ -105,7 +105,7 @@ export default function VozRecorder({
           ? "Nenhuma fala detectada."
           : codigo === "network"
           ? "Sem conexão para reconhecer voz."
-          : `Erro ao gravar: ${codigo}`;
+          : "Ocorreu um erro ao gravar. Tente novamente.";
       reportarErro(mensagem);
       setGravando(false);
     };

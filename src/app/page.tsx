@@ -86,7 +86,7 @@ export default function Home() {
       });
 
       if (!resposta.ok) {
-        throw new Error("Falha ao analisar a descrição.");
+        throw new Error("Não conseguimos analisar a descrição. Tente novamente.");
       }
 
       const dados = await resposta.json();
@@ -144,7 +144,7 @@ export default function Home() {
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
               placeholder="Ex: Preciso pintar uma casa de 70 metros, com massa corrida em dois quartos, tinta premium, em 3 dias."
-              className="w-full resize-none rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
+              className="w-full resize-none rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-base text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
               disabled={enviando}
             />
 
