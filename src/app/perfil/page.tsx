@@ -62,10 +62,12 @@ function CondicaoItem({
   id,
   cond,
   onRemove,
+  isRemoving,
 }: {
   id: string;
   cond: string;
   onRemove: () => void;
+  isRemoving?: boolean;
 }) {
   const {
     attributes,
@@ -80,12 +82,13 @@ function CondicaoItem({
     <li
       ref={setNodeRef}
       style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.4 : 1,
+        transform: isRemoving ? "translateY(6px)" : CSS.Transform.toString(transform),
+        transition: isRemoving ? "opacity 250ms ease, transform 250ms ease" : transition,
+        opacity: isDragging ? 0.4 : isRemoving ? 0 : 1,
         zIndex: isDragging ? 10 : undefined,
       }}
       className="flex cursor-grab items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-950/60 px-3 py-3 touch-none active:cursor-grabbing"
+      suppressHydrationWarning
       {...attributes}
       {...listeners}
     >
@@ -115,7 +118,7 @@ function CondicaoItem({
         onClick={(e) => { e.stopPropagation(); onRemove(); }}
         onPointerDown={(e) => e.stopPropagation()}
         aria-label="Remover condição"
-        className="shrink-0 rounded-lg p-1.5 text-red-400 transition hover:bg-red-500/10"
+        className="shrink-0 rounded-lg p-1.5 text-red-400 transition hover:bg-red-500/10 cursor-pointer"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -143,6 +146,7 @@ export default function PerfilPage() {
   const [perfil, setPerfil] = useState<PerfilPintor>(DEFAULTS);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [novaCondicao, setNovaCondicao] = useState("");
+  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
   const fileRef = useRef<HTMLInputElement>(null);
 
   const sensors = useSensors(
@@ -191,7 +195,16 @@ export default function PerfilPage() {
   }
 
   function removerCondicao(idx: number) {
-    set("condicoes", perfil.condicoes.filter((_, i) => i !== idx));
+    const id = `cond-${idx}`;
+    setRemovingIds((prev) => new Set(prev).add(id));
+    setTimeout(() => {
+      set("condicoes", perfil.condicoes.filter((_, i) => i !== idx));
+      setRemovingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }, 250);
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -362,6 +375,7 @@ export default function PerfilPage() {
                           id={condicaoIds[idx]}
                           cond={cond}
                           onRemove={() => removerCondicao(idx)}
+                          isRemoving={removingIds.has(condicaoIds[idx])}
                         />
                       ))}
                     </ul>
@@ -369,34 +383,47 @@ export default function PerfilPage() {
                 </DndContext>
               )}
 
-              <div className="flex flex-col gap-3">
-                <div className="relative">
-                  <input
-                    className={inputCls + " pr-16"}
-                    type="text"
-                    placeholder="Ex: Tinta fornecida pelo cliente."
-                    maxLength={MAX_CHARS}
-                    value={novaCondicao}
-                    onChange={(e) => setNovaCondicao(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        adicionarCondicao();
-                      }
-                    }}
-                  />
-                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-zinc-500 tabular-nums">
+              <div className="relative">
+                <input
+                  className={inputCls + " pr-24"}
+                  type="text"
+                  placeholder="Ex: Tinta fornecida pelo cliente."
+                  maxLength={MAX_CHARS}
+                  value={novaCondicao}
+                  onChange={(e) => setNovaCondicao(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      adicionarCondicao();
+                    }
+                  }}
+                />
+                <div className="pointer-events-none absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-2">
+                  <span className="text-xs text-zinc-500 tabular-nums">
                     {novaCondicao.length}/{MAX_CHARS}
                   </span>
+                  <button
+                    type="button"
+                    onClick={adicionarCondicao}
+                    disabled={!novaCondicao.trim()}
+                    className={`pointer-events-auto flex h-7 w-7 items-center justify-center rounded-lg transition ${novaCondicao.trim() ? "bg-brand-400 text-zinc-950 hover:bg-brand-300 cursor-pointer" : "bg-zinc-700 text-zinc-400 cursor-not-allowed"}`}
+                    aria-label="Adicionar condição"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-3.5 w-3.5"
+                    >
+                      <line x1="22" y1="2" x2="11" y2="13" />
+                      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                    </svg>
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={adicionarCondicao}
-                  disabled={!novaCondicao.trim()}
-                  className="self-start rounded-xl border border-brand-400 bg-brand-400/10 px-4 py-2 text-sm font-semibold text-brand-400 transition hover:bg-brand-400/20 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  + Adicionar condição
-                </button>
               </div>
             </section>
 

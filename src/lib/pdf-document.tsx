@@ -222,7 +222,7 @@ const s = StyleSheet.create({
     marginBottom: 10,
   },
   termsGrid: {
-    flexDirection: "column",
+    flexDirection: "row",
     flexWrap: "wrap",
   },
   termItem: {
@@ -322,15 +322,9 @@ const formatDate = (d: Date) =>
 export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
   const { dados, descricao, perfil } = rascunho;
 
-  const defaultCondicoes = [
-    "O prazo para finalização dos serviços é de 15 dias úteis.",
-    "Para início do trabalho recebemos 20% do valor antecipado.",
-    "Este orçamento é válido por 20 dias corridos a partir da data de emissão.",
-  ];
+  const terms = perfil?.condicoes ?? [];
 
-  const terms = perfil?.condicoes?.length ? perfil.condicoes : defaultCondicoes;
-
-  const cliente = rascunho.nome_cliente?.trim() || "o(a) cliente";
+  const cliente = rascunho.nome_cliente?.trim() || null;
 
   const serviceItems: string[] = [
     TIPOS_SERVICO_LABEL[dados.tipo],
@@ -367,9 +361,15 @@ export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
 
           {/* Intro */}
           <Text style={s.intro}>
-            Proposta de serviço para{" "}
-            <Text style={s.introBold}>{cliente}</Text>
-            {descricao ? `, conforme escopo descrito abaixo.` : `.`}
+            {cliente ? (
+              <>
+                {"Proposta de serviço para "}
+                <Text style={s.introBold}>{cliente}</Text>
+                {descricao ? `, conforme escopo descrito abaixo.` : `.`}
+              </>
+            ) : (
+              `Proposta de serviço${descricao ? " conforme escopo descrito abaixo." : "."}`
+            )}
           </Text>
 
           {/* Services list */}
@@ -386,6 +386,14 @@ export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
             ))}
           </View>
 
+          {/* Observações */}
+          {rascunho.observacoes ? (
+            <View style={s.obsCard}>
+              <Text style={s.obsHead}>Observações</Text>
+              <Text style={s.obsText}>{rascunho.observacoes}</Text>
+            </View>
+          ) : null}
+
           {/* Investimento */}
           <View style={s.investimento}>
             <Text style={s.invLabel}>Investimento</Text>
@@ -395,24 +403,20 @@ export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
             </View>
           </View>
 
-          {/* Observações */}
-          {rascunho.observacoes ? (
-            <View style={s.obsCard}>
-              <Text style={s.obsHead}>Observações</Text>
-              <Text style={s.obsText}>{rascunho.observacoes}</Text>
-            </View>
-          ) : null}
-
           {/* Terms */}
-          <Text style={s.termsTitle}>Condições</Text>
-          <View style={s.termsGrid}>
-            {terms.map((term, i) => (
-              <View key={i} style={s.termItem}>
-                <View style={s.termDash} />
-                <Text style={s.termText}>{term}</Text>
+          {terms.length > 0 ? (
+            <>
+              <Text style={s.termsTitle}>Condições</Text>
+              <View style={s.termsGrid}>
+                {terms.map((term, i) => (
+                  <View key={i} style={s.termItem}>
+                    <View style={s.termDash} />
+                    <Text style={s.termText}>{term}</Text>
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
+            </>
+          ) : null}
 
         </View>
 

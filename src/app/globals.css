@@ -135,4 +135,7 @@ body {
   html {
     @apply font-sans;
   }
+  button, a, [role="button"], label[for], select {
+    cursor: pointer;
+  }
 }

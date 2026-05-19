@@ -28,27 +28,10 @@ const FRASES_PENSANDO = [
   "Montando seu orçamento...",
 ];
 
-const DEMO_RASCUNHO = {
-  descricao:
-    "Pintura de sala e quartos para João Silva, 70m², paredes em bom estado",
-  dados: {
-    tipo: "pintura_simples" as const,
-    area_m2: 70,
-    complexidade: "media" as const,
-    fatores: [] as never[],
-    faixa_preco_min: 1488,
-    faixa_preco_max: 2012,
-    valor_final: 1750,
-  },
-  nome_cliente: "João Silva",
-  validade_dias: 20,
-};
-
 export default function Home() {
   const router = useRouter();
   const [descricao, setDescricao] = useState("");
   const [enviando, setEnviando] = useState(false);
-  const [baixandoDemo, setBaixandoDemo] = useState(false);
   const [fraseIdx, setFraseIdx] = useState(0);
   const [exemploIdx, setExemploIdx] = useState(0);
 
@@ -109,31 +92,6 @@ export default function Home() {
     }
   }
 
-  async function baixarDemo() {
-    if (baixandoDemo) return;
-    setBaixandoDemo(true);
-    try {
-      const resposta = await fetch("/api/gerar-pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(DEMO_RASCUNHO),
-      });
-      if (!resposta.ok) throw new Error("Falha ao gerar PDF de exemplo.");
-      const blob = await resposta.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "exemplo-orcamento.pdf";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch {
-      toast.error("Não foi possível gerar o PDF de exemplo.");
-    } finally {
-      setBaixandoDemo(false);
-    }
-  }
 
   return (
     <>
@@ -206,35 +164,6 @@ export default function Home() {
                   </svg>
                 </>
               )}
-            </button>
-
-            <button
-              type="button"
-              onClick={baixarDemo}
-              disabled={baixandoDemo || enviando}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-transparent px-5 py-3 text-sm font-medium text-zinc-300 transition hover:bg-zinc-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {baixandoDemo ? (
-                <Loader2Icon className="h-4 w-4 animate-spin" />
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-4 w-4"
-                >
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                  <line x1="16" y1="13" x2="8" y2="13" />
-                  <line x1="16" y1="17" x2="8" y2="17" />
-                  <polyline points="10 9 9 9 8 9" />
-                </svg>
-              )}
-              {baixandoDemo ? "Gerando exemplo..." : "Ver exemplo de PDF"}
             </button>
 
             <div className="mt-6 border-t border-zinc-800 pt-5">
