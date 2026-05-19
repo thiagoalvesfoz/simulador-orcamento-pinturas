@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import BadgeIA from "@/components/BadgeIA";
 import Header from "@/components/Header";
 import { calcularFaixaPreco } from "@/lib/pricing";
-import { carregarOrcamento, carregarPerfil, gerarNumeroOrcamento } from "@/lib/storage";
+import { carregarOrcamento, carregarPerfil, gerarNumeroOrcamento, salvarOrcamento } from "@/lib/storage";
 import {
   COMPLEXIDADES,
   COMPLEXIDADES_LABEL,
@@ -90,6 +90,10 @@ export default function RevisaoPage() {
     setCarregando(false);
     toast.success("Orçamento pronto para revisão", { id: "revisao-extraido" });
   }, [router]);
+
+  useEffect(() => {
+    if (rascunho) salvarOrcamento(rascunho);
+  }, [rascunho]);
 
   const dados = rascunho?.dados;
 
@@ -234,6 +238,27 @@ export default function RevisaoPage() {
             </Link>
           )}
 
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="mb-4 mt-5 flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/60 px-5 py-3 text-sm font-semibold text-zinc-400 transition hover:bg-zinc-800 hover:text-white"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+            >
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+            Voltar ao início
+          </button>
+
           {/* Step 1 */}
           <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 overflow-hidden">
             <button
@@ -248,7 +273,7 @@ export default function RevisaoPage() {
               <StepBadge step={1} done={step === 2} />
               <div className="flex-1">
                 <p className="text-sm font-bold uppercase tracking-wider text-zinc-400">
-                  Dados extraídos pela IA
+                  Revisão do orçamento
                 </p>
                 {step === 2 && (
                   <p className="mt-0.5 text-xs text-zinc-500">
@@ -328,7 +353,7 @@ export default function RevisaoPage() {
                           type="button"
                           onClick={() => alternarFator(f)}
                           className={
-                            "rounded-full border px-4 py-1.5 text-xs font-medium transition " +
+                            "cursor-pointer rounded-full border px-4 py-1.5 text-xs font-medium transition " +
                             (ativo
                               ? "border-brand-400 bg-brand-400 text-zinc-950"
                               : "border-zinc-700 bg-transparent text-zinc-200 hover:border-brand-400/60 hover:text-white")
@@ -461,28 +486,6 @@ export default function RevisaoPage() {
             </div>
           </div>
 
-          <div className="mt-5">
-            <button
-              type="button"
-              onClick={() => router.push("/")}
-              className="flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/60 px-5 py-3 text-sm font-semibold text-zinc-400 transition hover:bg-zinc-800 hover:text-white"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4"
-              >
-                <line x1="19" y1="12" x2="5" y2="12" />
-                <polyline points="12 19 5 12 12 5" />
-              </svg>
-              Voltar ao início
-            </button>
-          </div>
         </div>
       </main>
     </>
@@ -582,7 +585,7 @@ function SliderValor({
           step={10}
           value={Math.min(Math.max(valor, sliderMin), sliderMax)}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="relative w-full appearance-none bg-transparent cursor-pointer h-5 [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-brand-400 [&::-webkit-slider-thumb]:shadow [&::-webkit-slider-thumb]:-mt-[7px] [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-transparent [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-brand-400"
+          className="relative w-full appearance-none bg-transparent cursor-pointer h-5 [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-brand-400 [&::-webkit-slider-thumb]:shadow [&::-webkit-slider-thumb]:-mt-1.75 [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-transparent [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-brand-400"
         />
       </div>
       <div className="mt-2 flex justify-between text-xs text-zinc-500 tabular-nums">

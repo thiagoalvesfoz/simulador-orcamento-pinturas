@@ -244,7 +244,7 @@ export default function PerfilPage() {
                   <img
                     src={logoPreview}
                     alt="Pré-visualização da logo"
-                    className="h-16 w-auto max-w-[160px] rounded-lg border border-zinc-700 object-contain bg-white p-1"
+                    className="h-16 w-auto max-w-40 rounded-lg border border-zinc-700 object-contain bg-white p-1"
                   />
                   <button
                     type="button"
@@ -403,7 +403,7 @@ export default function PerfilPage() {
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => router.push("/")}
+                onClick={() => router.back()}
                 className="flex-1 rounded-xl border border-zinc-700 bg-zinc-900/60 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-zinc-800"
               >
                 Voltar
