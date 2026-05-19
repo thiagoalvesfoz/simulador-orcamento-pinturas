@@ -34,7 +34,6 @@ export default function RevisaoPage() {
   const [baixando, setBaixando] = useState(false);
   const [nomeCliente, setNomeCliente] = useState("");
   const [observacoes, setObservacoes] = useState("");
-  const [validadeDias, setValidadeDias] = useState(20);
   const [perfilIncompleto, setPerfilIncompleto] = useState(false);
 
   useEffect(() => {
@@ -120,7 +119,6 @@ export default function RevisaoPage() {
           ...rascunho,
           nome_cliente: nomeCliente.trim() || undefined,
           observacoes: observacoes.trim() || undefined,
-          validade_dias: validadeDias,
           perfil: perfil ?? undefined,
           numero_orcamento: numero,
         }),
@@ -196,20 +194,14 @@ export default function RevisaoPage() {
           )}
 
           <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur sm:p-6">
+            <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-zinc-400">
+              Dados extraídos pela IA
+            </h3>
+
             <Campo label="Descrição original">
               <div className="w-full rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-300">
                 {rascunho.descricao}
               </div>
-            </Campo>
-
-            <Campo label="Nome do cliente">
-              <input
-                type="text"
-                placeholder="Ex: João Silva"
-                value={nomeCliente}
-                onChange={(e) => setNomeCliente(e.target.value)}
-                className="w-full rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
-              />
             </Campo>
 
             <Campo label="Tipo de serviço">
@@ -305,29 +297,29 @@ export default function RevisaoPage() {
           </section>
 
           <section className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur sm:p-6">
-            <div className="grid grid-cols-[1fr_auto] gap-4">
-              <Campo label="Observações (opcional)">
-                <textarea
-                  rows={3}
-                  placeholder="Ex: inclui 2 demãos, tinta fornecida pelo cliente..."
-                  value={observacoes}
-                  onChange={(e) => setObservacoes(e.target.value)}
-                  className="w-full resize-none rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
-                />
-              </Campo>
-              <Campo label="Validade (dias)">
-                <input
-                  type="number"
-                  min={1}
-                  max={365}
-                  value={validadeDias}
-                  onChange={(e) =>
-                    setValidadeDias(Math.max(1, Number(e.target.value) || 1))
-                  }
-                  className="w-24 rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
-                />
-              </Campo>
-            </div>
+            <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-zinc-400">
+              Personalizar PDF
+            </h3>
+
+            <Campo label="Nome do cliente">
+              <input
+                type="text"
+                placeholder="Ex: João Silva"
+                value={nomeCliente}
+                onChange={(e) => setNomeCliente(e.target.value)}
+                className="w-full rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
+              />
+            </Campo>
+
+            <Campo label="Observações (opcional)">
+              <textarea
+                rows={3}
+                placeholder="Ex: inclui 2 demãos, tinta fornecida pelo cliente..."
+                value={observacoes}
+                onChange={(e) => setObservacoes(e.target.value)}
+                className="w-full resize-none rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
+              />
+            </Campo>
           </section>
 
           <div className="mt-5 flex gap-3">

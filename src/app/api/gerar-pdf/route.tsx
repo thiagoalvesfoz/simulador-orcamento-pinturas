@@ -80,10 +80,6 @@ function validarRascunho(input: unknown): RascunhoOrcamento | null {
       typeof obj.observacoes === "string" && obj.observacoes.trim()
         ? obj.observacoes.trim()
         : undefined,
-    validade_dias:
-      typeof obj.validade_dias === "number" && obj.validade_dias > 0
-        ? obj.validade_dias
-        : undefined,
     perfil: validarPerfil(obj.perfil),
     numero_orcamento:
       typeof obj.numero_orcamento === "string" && obj.numero_orcamento.trim()

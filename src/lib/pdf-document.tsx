@@ -318,27 +318,17 @@ const formatBRL = (n: number) =>
 const formatDate = (d: Date) =>
   d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 
-function addDays(date: Date, days: number): Date {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
-}
 
 export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
   const { dados, descricao, perfil } = rascunho;
 
-  const validadeDias = rascunho.validade_dias ?? 20;
-  const validadeData = formatDate(addDays(new Date(), validadeDias));
-
   const defaultCondicoes = [
     "O prazo para finalização dos serviços é de 15 dias úteis.",
     "Para início do trabalho recebemos 20% do valor antecipado.",
+    "Este orçamento é válido por 20 dias corridos a partir da data de emissão.",
   ];
 
-  const terms = [
-    ...(perfil?.condicoes?.length ? perfil.condicoes : defaultCondicoes),
-    `Este orçamento tem validade até ${validadeData}.`,
-  ];
+  const terms = perfil?.condicoes?.length ? perfil.condicoes : defaultCondicoes;
 
   const cliente = rascunho.nome_cliente?.trim() || "o(a) cliente";
 

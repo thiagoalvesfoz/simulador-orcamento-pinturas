@@ -65,7 +65,6 @@ export type RascunhoOrcamento = {
   dados: DadosOrcamento;
   nome_cliente?: string;
   observacoes?: string;
-  validade_dias?: number;
   perfil?: PerfilPintor;
   numero_orcamento?: string;
 };

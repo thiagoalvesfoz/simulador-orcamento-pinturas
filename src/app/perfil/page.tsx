@@ -32,6 +32,7 @@ const DEFAULTS: PerfilPintor = {
   condicoes: [
     "O prazo para finalização dos serviços é de 15 dias úteis.",
     "Para início do trabalho recebemos 20% do valor antecipado.",
+    "Este orçamento é válido por 20 dias corridos a partir da data de emissão.",
   ],
 };
 
@@ -332,6 +333,7 @@ export default function PerfilPage() {
                     onChange={(e) => set("email", e.target.value)}
                   />
                 </Campo>
+
               </div>
             </section>
 
