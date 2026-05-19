@@ -329,7 +329,7 @@ export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
   const serviceItems: string[] = [
     TIPOS_SERVICO_LABEL[dados.tipo],
     `Área de ${dados.area_m2} m²`,
-    `Complexidade: ${COMPLEXIDADES_LABEL[dados.complexidade]}`,
+    `Nível de execução: ${COMPLEXIDADES_LABEL[dados.complexidade]}`,
     ...dados.fatores.map((f) => FATORES_LABEL[f]),
   ];
 
@@ -363,18 +363,18 @@ export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
           <Text style={s.intro}>
             {cliente ? (
               <>
-                {"Proposta de serviço para "}
+                {"Elaboramos este orçamento para "}
                 <Text style={s.introBold}>{cliente}</Text>
-                {descricao ? `, conforme escopo descrito abaixo.` : `.`}
+                {descricao ? `, com base no escopo de serviços descrito abaixo.` : `.`}
               </>
             ) : (
-              `Proposta de serviço${descricao ? " conforme escopo descrito abaixo." : "."}`
+              `Elaboramos este orçamento com base no escopo de serviços descrito abaixo.`
             )}
           </Text>
 
           {/* Services list */}
           <View style={s.servicesCard}>
-            <Text style={s.servicesHead}>Serviços inclusos</Text>
+            <Text style={s.servicesHead}>Escopo do Serviço</Text>
             {serviceItems.map((item, i) => (
               <View
                 key={i}
@@ -406,7 +406,7 @@ export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
           {/* Terms */}
           {terms.length > 0 ? (
             <>
-              <Text style={s.termsTitle}>Condições</Text>
+              <Text style={s.termsTitle}>Condições Gerais</Text>
               <View style={s.termsGrid}>
                 {terms.map((term, i) => (
                   <View key={i} style={s.termItem}>
@@ -445,7 +445,7 @@ export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
             ) : null}
           </View>
           <Text style={s.footerMeta}>
-            Orçamento estimado. Valores podem ser ajustados após inspeção presencial.
+            Orçamento elaborado com base nas informações fornecidas. Valores sujeitos a ajuste após visita técnica.
           </Text>
         </View>
 

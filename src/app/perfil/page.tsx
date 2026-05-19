@@ -239,7 +239,7 @@ export default function PerfilPage() {
               Sua identidade profissional
             </h2>
             <p className="mt-1 text-sm text-zinc-400">
-              Configure uma vez — aparece em todas as suas propostas.
+              Seus dados aparecem em todos os orçamentos gerados.
             </p>
           </div>
 
@@ -289,7 +289,7 @@ export default function PerfilPage() {
                   </svg>
                   Envie sua logo e apareça de forma profissional
                   <span className="text-xs text-zinc-500">
-                    PNG, JPG ou SVG · aparece no rodapé de cada proposta
+                    PNG, JPG ou SVG · aparece no rodapé de cada orçamento
                   </span>
                 </button>
               )}
@@ -355,7 +355,7 @@ export default function PerfilPage() {
             {/* Condições */}
             <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur sm:p-6">
               <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-zinc-400">
-                Condições da proposta
+                Condições do orçamento
               </h3>
 
               {perfil.condicoes.length > 0 && (
