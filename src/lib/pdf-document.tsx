@@ -124,18 +124,18 @@ const s = StyleSheet.create({
     letterSpacing: 0.8,
     color: C.primary,
   },
-  serviceItem: {
+  serviceRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 13,
+    paddingVertical: 11,
     paddingHorizontal: 15,
     borderBottomWidth: 1,
     borderBottomColor: C.divider,
   },
-  serviceItemLast: {
+  serviceRowLast: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 13,
+    paddingVertical: 11,
     paddingHorizontal: 15,
   },
   serviceDot: {
@@ -143,11 +143,44 @@ const s = StyleSheet.create({
     height: 5,
     borderRadius: 999,
     backgroundColor: C.primary,
-    marginRight: 12,
+    marginRight: 10,
+    marginTop: 2,
+  },
+  serviceInfo: {
+    flex: 1,
   },
   serviceText: {
-    fontSize: 12,
+    fontSize: 11,
     color: C.zinc100,
+  },
+  serviceMeta: {
+    fontSize: 9,
+    color: C.textMuted,
+    marginTop: 2,
+  },
+  serviceSubtotal: {
+    fontSize: 11,
+    fontFamily: "Helvetica-Bold",
+    color: C.zinc200,
+  },
+  servicesTotalRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    gap: 8,
+  },
+  servicesTotalLabel: {
+    fontSize: 9,
+    color: C.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  servicesTotalValue: {
+    fontSize: 11,
+    fontFamily: "Helvetica-Bold",
+    color: C.zinc300,
   },
 
   // ── Investimento ─────────────────────────────────────────
@@ -323,17 +356,10 @@ export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
   const { dados, descricao, perfil } = rascunho;
 
   const terms = perfil?.condicoes ?? [];
-
   const cliente = rascunho.nome_cliente?.trim() || null;
-
-  const serviceItems: string[] = [
-    TIPOS_SERVICO_LABEL[dados.tipo],
-    `Área de ${dados.area_m2} m²`,
-    `Nível de execução: ${COMPLEXIDADES_LABEL[dados.complexidade]}`,
-    ...dados.fatores.map((f) => FATORES_LABEL[f]),
-  ];
-
   const temPerfil = perfil && (perfil.nome || perfil.telefone || perfil.email);
+  const somaSubtotais = dados.itens.reduce((s, i) => s + i.subtotal, 0);
+  const temAjuste = dados.valor_final !== somaSubtotais;
 
   return (
     <Document>
@@ -375,15 +401,30 @@ export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
           {/* Services list */}
           <View style={s.servicesCard}>
             <Text style={s.servicesHead}>Escopo do Serviço</Text>
-            {serviceItems.map((item, i) => (
-              <View
-                key={i}
-                style={i < serviceItems.length - 1 ? s.serviceItem : s.serviceItemLast}
-              >
-                <View style={s.serviceDot} />
-                <Text style={s.serviceText}>{item}</Text>
+            {dados.itens.map((item, i) => {
+              const isLast = i === dados.itens.length - 1 && !temAjuste;
+              const qtdLabel = item.unidade === "m2"
+                ? `${item.quantidade} m²`
+                : `${item.quantidade} ${item.quantidade === 1 ? "unidade" : "unidades"}`;
+              const metaPartes = [qtdLabel, COMPLEXIDADES_LABEL[item.complexidade]];
+              if (item.fatores.length > 0) metaPartes.push(item.fatores.map(f => FATORES_LABEL[f]).join(", "));
+              return (
+                <View key={item.id} style={isLast ? s.serviceRowLast : s.serviceRow}>
+                  <View style={s.serviceDot} />
+                  <View style={s.serviceInfo}>
+                    <Text style={s.serviceText}>{TIPOS_SERVICO_LABEL[item.tipo]}</Text>
+                    <Text style={s.serviceMeta}>{metaPartes.join(" · ")}</Text>
+                  </View>
+                  <Text style={s.serviceSubtotal}>R$ {formatBRL(item.subtotal)}</Text>
+                </View>
+              );
+            })}
+            {temAjuste && (
+              <View style={s.servicesTotalRow}>
+                <Text style={s.servicesTotalLabel}>Valor negociado</Text>
+                <Text style={s.servicesTotalValue}>R$ {formatBRL(dados.valor_final)}</Text>
               </View>
-            ))}
+            )}
           </View>
 
           {/* Observações */}

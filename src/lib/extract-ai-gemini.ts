@@ -6,19 +6,27 @@ import {
   type DadosExtraidos,
 } from "./types";
 
-const RESPONSE_SCHEMA = {
+const ITEM_SCHEMA = {
   type: Type.OBJECT,
   properties: {
-    tipo: { type: Type.STRING, enum: [...TIPOS_SERVICO] },
-    area_m2: { type: Type.NUMBER },
+    tipo:         { type: Type.STRING, enum: [...TIPOS_SERVICO] },
+    quantidade:   { type: Type.NUMBER },
     complexidade: { type: Type.STRING, enum: [...COMPLEXIDADES] },
     fatores: {
       type: Type.ARRAY,
       items: { type: Type.STRING, enum: [...FATORES] },
     },
   },
-  required: ["tipo", "area_m2", "complexidade", "fatores"],
-  propertyOrdering: ["tipo", "area_m2", "complexidade", "fatores"],
+  required: ["tipo", "quantidade", "complexidade", "fatores"],
+  propertyOrdering: ["tipo", "quantidade", "complexidade", "fatores"],
+};
+
+const RESPONSE_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    itens: { type: Type.ARRAY, items: ITEM_SCHEMA },
+  },
+  required: ["itens"],
 };
 
 export async function extrairComGemini(

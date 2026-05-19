@@ -4,8 +4,10 @@ import {
   COMPLEXIDADES,
   FATORES,
   TIPOS_SERVICO,
+  UNIDADE_POR_TIPO,
   type Complexidade,
   type Fator,
+  type ItemOrcamento,
   type PerfilPintor,
   type RascunhoOrcamento,
   type TipoServico,
@@ -55,10 +57,9 @@ function validarRascunho(input: unknown): RascunhoOrcamento | null {
   if (!dados || typeof dados !== "object") return null;
   const d = dados as Record<string, unknown>;
 
-  if (!isTipo(d.tipo)) return null;
-  if (typeof d.area_m2 !== "number" || d.area_m2 <= 0) return null;
-  if (!isComplexidade(d.complexidade)) return null;
-  if (!Array.isArray(d.fatores) || !d.fatores.every(isFator)) return null;
+  if (!Array.isArray(d.itens) || d.itens.length === 0) return null;
+  const itens = d.itens.map(validarItem).filter((i): i is ItemOrcamento => i !== null);
+  if (itens.length === 0) return null;
   if (typeof d.faixa_preco_min !== "number") return null;
   if (typeof d.faixa_preco_max !== "number") return null;
   if (typeof d.valor_final !== "number") return null;
@@ -66,10 +67,7 @@ function validarRascunho(input: unknown): RascunhoOrcamento | null {
   return {
     descricao: obj.descricao,
     dados: {
-      tipo: d.tipo,
-      area_m2: d.area_m2,
-      complexidade: d.complexidade,
-      fatores: d.fatores,
+      itens,
       faixa_preco_min: d.faixa_preco_min,
       faixa_preco_max: d.faixa_preco_max,
       valor_final: d.valor_final,
@@ -85,6 +83,24 @@ function validarRascunho(input: unknown): RascunhoOrcamento | null {
       typeof obj.numero_orcamento === "string" && obj.numero_orcamento.trim()
         ? obj.numero_orcamento.trim()
         : undefined,
+  };
+}
+
+function validarItem(input: unknown): ItemOrcamento | null {
+  if (!input || typeof input !== "object") return null;
+  const i = input as Record<string, unknown>;
+  if (!isTipo(i.tipo)) return null;
+  if (typeof i.quantidade !== "number" || i.quantidade <= 0) return null;
+  if (!isComplexidade(i.complexidade)) return null;
+  if (!Array.isArray(i.fatores) || !i.fatores.every(isFator)) return null;
+  return {
+    id: typeof i.id === "string" ? i.id : `item-${Math.random().toString(36).slice(2, 7)}`,
+    tipo: i.tipo,
+    unidade: UNIDADE_POR_TIPO[i.tipo],
+    quantidade: i.quantidade,
+    complexidade: i.complexidade,
+    fatores: i.fatores,
+    subtotal: typeof i.subtotal === "number" ? i.subtotal : 0,
   };
 }
 

@@ -6,6 +6,21 @@ import {
   type DadosExtraidos,
 } from "./types";
 
+const ITEM_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    tipo:         { type: "string", enum: [...TIPOS_SERVICO] },
+    quantidade:   { type: "number", minimum: 1 },
+    complexidade: { type: "string", enum: [...COMPLEXIDADES] },
+    fatores: {
+      type: "array",
+      items: { type: "string", enum: [...FATORES] },
+    },
+  },
+  required: ["tipo", "quantidade", "complexidade", "fatores"],
+} as const;
+
 const SCHEMA = {
   name: "DadosOrcamento",
   strict: true,
@@ -13,15 +28,9 @@ const SCHEMA = {
     type: "object",
     additionalProperties: false,
     properties: {
-      tipo: { type: "string", enum: [...TIPOS_SERVICO] },
-      area_m2: { type: "number", minimum: 1 },
-      complexidade: { type: "string", enum: [...COMPLEXIDADES] },
-      fatores: {
-        type: "array",
-        items: { type: "string", enum: [...FATORES] },
-      },
+      itens: { type: "array", items: ITEM_SCHEMA },
     },
-    required: ["tipo", "area_m2", "complexidade", "fatores"],
+    required: ["itens"],
   },
 } as const;
 

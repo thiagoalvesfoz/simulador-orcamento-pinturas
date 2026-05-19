@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { detectarProvider, extrairComIA } from "@/lib/extract-ai";
 import { extrairHeuristico } from "@/lib/extract";
-import { calcularFaixaPreco } from "@/lib/pricing";
-import type { DadosOrcamento } from "@/lib/types";
+import { calcularOrcamento, calcularSubtotalItem } from "@/lib/pricing";
+import { UNIDADE_POR_TIPO } from "@/lib/types";
+import type { DadosExtraidos, DadosOrcamento, ItemOrcamento } from "@/lib/types";
 
 export const runtime = "nodejs";
 
@@ -24,18 +25,12 @@ export async function POST(request: Request) {
   }
 
   const extraido = await extrair(descricao);
-  const faixa = calcularFaixaPreco(extraido);
-
-  const dados: DadosOrcamento = {
-    ...extraido,
-    ...faixa,
-    valor_final: Math.round((faixa.faixa_preco_min + faixa.faixa_preco_max) / 2),
-  };
+  const dados = extraidoParaOrcamento(extraido);
 
   return NextResponse.json(dados);
 }
 
-async function extrair(descricao: string) {
+async function extrair(descricao: string): Promise<DadosExtraidos> {
   if (!detectarProvider()) {
     return extrairHeuristico(descricao);
   }
@@ -45,4 +40,26 @@ async function extrair(descricao: string) {
     console.error("Falha na extração via IA, usando heurística:", err);
     return extrairHeuristico(descricao);
   }
+}
+
+function extraidoParaOrcamento(extraido: DadosExtraidos): DadosOrcamento {
+  const itens: ItemOrcamento[] = extraido.itens.map((item, i) => {
+    const { subtotal } = calcularSubtotalItem(item);
+    return {
+      id: `item-${i}-${Math.random().toString(36).slice(2, 7)}`,
+      tipo: item.tipo,
+      unidade: UNIDADE_POR_TIPO[item.tipo],
+      quantidade: item.quantidade,
+      complexidade: item.complexidade,
+      fatores: item.fatores,
+      subtotal,
+    };
+  });
+
+  const faixa = calcularOrcamento(itens);
+  return {
+    itens,
+    ...faixa,
+    valor_final: Math.round((faixa.faixa_preco_min + faixa.faixa_preco_max) / 2),
+  };
 }

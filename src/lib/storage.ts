@@ -11,7 +11,9 @@ export function carregarOrcamento(): RascunhoOrcamento | null {
   const raw = sessionStorage.getItem(STORAGE_KEY);
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as RascunhoOrcamento;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed?.dados?.itens)) return null;
+    return parsed as RascunhoOrcamento;
   } catch {
     return null;
   }

@@ -38,10 +38,11 @@ Forçar provedor com `AI_PROVIDER=gemini|openai`. Sem nenhuma chave, o sistema c
 **Fluxo de uma ponta a outra:**
 
 1. `src/app/page.tsx` — usuário digita ou dita a descrição (componente `VozRecorder` usa Web Speech API). POST para `/api/analisar`.
-2. `src/app/api/analisar/route.ts` — tenta `extrairComIA` (OpenAI structured outputs); em qualquer falha cai em `extrairHeuristico`. Em seguida chama `calcularFaixaPreco`. Devolve um `DadosOrcamento` completo. A página salva `{ descricao, dados }` em `sessionStorage` via `salvarOrcamento` e navega para `/revisao`.
-3. `src/app/revisao/page.tsx` — lê do `sessionStorage`, permite editar tipo/área/complexidade/fatores e recalcula a faixa em tempo real (chama `calcularFaixaPreco` no client). O `valor_final` é puxado para o meio da faixa quando sai do intervalo. Ao confirmar, navega para `/orcamento`.
-4. `src/app/orcamento/page.tsx` — mostra o resumo final e POSTa o rascunho para `/api/gerar-pdf`, que retorna o PDF como blob para download.
+2. `src/app/api/analisar/route.ts` — tenta `extrairComIA` (Gemini ou OpenAI conforme chave disponível); em qualquer falha cai em `extrairHeuristico`. Em seguida chama `calcularFaixaPreco`. Devolve um `DadosOrcamento` completo. A página salva `{ descricao, dados }` em `sessionStorage` via `salvarOrcamento` e navega para `/revisao`.
+3. `src/app/revisao/page.tsx` — fluxo de **dois passos na mesma rota**. Passo 1: editar tipo/área/complexidade/fatores, recalcular faixa em tempo real, ajustar `valor_final` via slider. Passo 2: inserir nome do cliente e observações, gerar PDF (POST para `/api/gerar-pdf`). Após geração, exibe tela de sucesso com download (desktop) ou compartilhamento nativo via Web Share API (mobile) — sem navegar para outra rota.
+4. `src/app/orcamento/page.tsx` — **redirect stub**: redireciona para `/` imediatamente. Rota legada mantida para não quebrar bookmarks.
 5. `src/app/api/gerar-pdf/route.tsx` — valida o body com guards e renderiza o componente `OrcamentoPdf` via `renderToBuffer`. Precisa ser `.tsx` (usa JSX) e `runtime = "nodejs"` (o renderer não roda em edge).
+6. `src/app/perfil/page.tsx` — formulário de identidade do pintor (nome, telefone, e-mail, cidade, logo, condições do orçamento com drag-and-drop). Dados salvos em `localStorage` via `salvarPerfil` e lidos em `/revisao` no momento de gerar o PDF.
 
 **Cálculo da faixa de preço** (`src/lib/pricing.ts`): `preco_base_m2[tipo] × area × multiplicador[complexidade] × (1 + Σ acréscimos[fatores])`, com ±15% para os limites min/max. Se mudar as tabelas, lembre que o cálculo roda **tanto no servidor** (`/api/analisar`) **quanto no client** (`/revisao` recalcula durante a edição) — manter a função pura é importante.
 
@@ -53,15 +54,25 @@ Forçar provedor com `AI_PROVIDER=gemini|openai`. Sem nenhuma chave, o sistema c
 
 Para adicionar um novo provedor: criar `extract-ai-<nome>.ts` com `extrairCom<Nome>(descricao, systemPrompt): Promise<DadosExtraidos>`, registrar em `extract-ai.ts` (`detectarProvider` + branch no `extrairComIA`), atualizar `.env.example`.
 
-**Persistência:** apenas `sessionStorage` em `src/lib/storage.ts`. Não há banco de dados — qualquer feature que precise de histórico precisará adicionar um.
+**Persistência:** `src/lib/storage.ts` — sem banco de dados.
+- Orçamento em andamento: `sessionStorage` (limpo ao fechar aba).
+- Perfil do pintor: `localStorage` (persiste entre sessões).
+Qualquer feature que precise de histórico precisará adicionar um banco.
 
 ## Convenções
 
 - Identificadores de domínio (tipos, complexidades, fatores) em **português com underscore** (`pintura_simples`, `parede_ruim`) e seus rótulos visíveis em mapas `*_LABEL`.
-- Componentes que usam `sessionStorage`, `useRouter` ou outros browser APIs precisam de `"use client"` e devem fazer `router.replace("/")` se o storage estiver vazio (ver `revisao/page.tsx`, `orcamento/page.tsx`).
+- Componentes que usam `sessionStorage`, `useRouter` ou outros browser APIs precisam de `"use client"` e devem fazer `router.replace("/")` se o storage estiver vazio (ver `revisao/page.tsx`).
 - API routes que usam `@react-pdf/renderer` ou o SDK da OpenAI: marcar `export const runtime = "nodejs"`.
 - Next.js 16: `params`/`searchParams`/`cookies`/`headers` são todos `Promise` (precisam de `await`). Veja `node_modules/next/dist/docs/01-app/02-guides/upgrading/version-16.md` antes de usar APIs assíncronas.
 
 ## Roadmap (status)
 
-Etapas 1–6 do documento de requisitos estão implementadas. Fora do escopo do MVP: histórico/persistência, autenticação, multi-usuário, customização de marca no PDF.
+Etapas 1–6 do documento de requisitos estão implementadas.
+
+**Pós-MVP planejado (em ordem):**
+1. Banco de dados + histórico de orçamentos
+2. Autenticação e área logada
+3. Plano pago (monetização por uso)
+
+Fora do escopo do MVP mas no horizonte: multi-usuário, customização de marca no PDF.
