@@ -1,5 +1,6 @@
 import {
   Document,
+  Image,
   Page,
   Path,
   StyleSheet,
@@ -182,6 +183,34 @@ const s = StyleSheet.create({
     color: C.primaryInk,
   },
 
+  // ── Observações ──────────────────────────────────────────
+  obsCard: {
+    borderWidth: 1,
+    borderColor: C.divider,
+    borderRadius: 4,
+    backgroundColor: C.sheetElev,
+    marginBottom: 20,
+    overflow: "hidden",
+  },
+  obsHead: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: C.divider,
+    fontSize: 9,
+    fontFamily: "Helvetica-Bold",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    color: C.textMuted,
+  },
+  obsText: {
+    paddingVertical: 13,
+    paddingHorizontal: 15,
+    fontSize: 11,
+    color: C.termItem,
+    lineHeight: 1.5,
+  },
+
   // ── Terms ────────────────────────────────────────────────
   termsTitle: {
     fontSize: 9,
@@ -229,12 +258,29 @@ const s = StyleSheet.create({
     alignItems: "flex-end",
     justifyContent: "space-between",
   },
+  footerLeft: {
+    flexDirection: "column",
+    gap: 4,
+  },
+  footerPintor: {
+    fontSize: 10,
+    fontFamily: "Helvetica-Bold",
+    color: C.zinc300,
+  },
+  footerContato: {
+    fontSize: 9,
+    color: C.textMuted,
+  },
   footerMeta: {
     fontSize: 9,
     color: C.textDim,
     textAlign: "right",
     maxWidth: 220,
     lineHeight: 1.5,
+  },
+  logoImg: {
+    width: 90,
+    objectFit: "contain",
   },
 });
 
@@ -271,14 +317,27 @@ const formatBRL = (n: number) =>
 const formatDate = (d: Date) =>
   d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 
-const TERMS = [
-  "O prazo para finalização dos serviços é de 15 dias úteis.",
-  "Para início do trabalho recebemos 20% do valor antecipado.",
-  "Este orçamento tem validade de 20 dias corridos.",
-];
+function addDays(date: Date, days: number): Date {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+}
 
 export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
-  const { dados, descricao } = rascunho;
+  const { dados, descricao, perfil } = rascunho;
+
+  const prazo = perfil?.prazo_dias ?? 15;
+  const entrada = perfil?.entrada_percentual ?? 20;
+  const validadeDias = rascunho.validade_dias ?? perfil?.validade_dias ?? 20;
+  const validadeData = formatDate(addDays(new Date(), validadeDias));
+
+  const terms = [
+    `O prazo para finalização dos serviços é de ${prazo} dias úteis.`,
+    `Para início do trabalho recebemos ${entrada}% do valor antecipado.`,
+    `Este orçamento tem validade até ${validadeData}.`,
+  ];
+
+  const cliente = rascunho.nome_cliente?.trim() || "o(a) cliente";
 
   const serviceItems: string[] = [
     TIPOS_SERVICO_LABEL[dados.tipo],
@@ -287,9 +346,7 @@ export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
     ...dados.fatores.map((f) => FATORES_LABEL[f]),
   ];
 
-  // Extract client name from description (best-effort: first proper noun phrase)
-  const clienteMatch = descricao.match(/(?:para|cliente|de)\s+([A-ZÁÉÍÓÚÀÂÊÔÃÕÇ][a-záéíóúàâêôãõç]+(?:\s+[A-ZÁÉÍÓÚÀÂÊÔÃÕÇ][a-záéíóúàâêôãõç]+)*)/u);
-  const cliente = clienteMatch ? clienteMatch[1] : "o(a) cliente";
+  const temPerfil = perfil && (perfil.nome || perfil.telefone || perfil.email);
 
   return (
     <Document>
@@ -299,7 +356,9 @@ export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
         <View style={s.header}>
           <View>
             <Text style={s.headerTitle}>Orçamento</Text>
-            <Text style={s.headerSubtitle}>Pintura de Alto Padrão</Text>
+            <Text style={s.headerSubtitle}>
+              {perfil?.nome ? perfil.nome : "Pintura de Alto Padrão"}
+            </Text>
           </View>
           <View>
             <Text style={s.headerDateLabel}>Emitido em</Text>
@@ -312,12 +371,12 @@ export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
 
           {/* Intro */}
           <Text style={s.intro}>
-            Proposta para pintura residencial para a cliente{" "}
+            Proposta de serviço para{" "}
             <Text style={s.introBold}>{cliente}</Text>
-            , conforme escopo descrito abaixo.
+            {descricao ? `, conforme escopo descrito abaixo.` : `.`}
           </Text>
 
-          {/* Services list — no prices */}
+          {/* Services list */}
           <View style={s.servicesCard}>
             <Text style={s.servicesHead}>Serviços inclusos</Text>
             {serviceItems.map((item, i) => (
@@ -340,10 +399,18 @@ export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
             </View>
           </View>
 
+          {/* Observações */}
+          {rascunho.observacoes ? (
+            <View style={s.obsCard}>
+              <Text style={s.obsHead}>Observações</Text>
+              <Text style={s.obsText}>{rascunho.observacoes}</Text>
+            </View>
+          ) : null}
+
           {/* Terms */}
           <Text style={s.termsTitle}>Condições</Text>
           <View style={s.termsGrid}>
-            {TERMS.map((term, i) => (
+            {terms.map((term, i) => (
               <View key={i} style={s.termItem}>
                 <View style={s.termDash} />
                 <Text style={s.termText}>{term}</Text>
@@ -355,7 +422,28 @@ export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
 
         {/* Footer */}
         <View style={s.footer}>
-          <LogoPDF width={90} />
+          <View style={s.footerLeft}>
+            {perfil?.logo_base64 ? (
+              <Image src={perfil.logo_base64} style={s.logoImg} alt="" />
+            ) : (
+              <LogoPDF width={90} />
+            )}
+            {temPerfil ? (
+              <>
+                {perfil?.nome ? (
+                  <Text style={s.footerPintor}>{perfil.nome}</Text>
+                ) : null}
+                {perfil?.telefone || perfil?.email ? (
+                  <Text style={s.footerContato}>
+                    {[perfil?.telefone, perfil?.email].filter(Boolean).join(" · ")}
+                  </Text>
+                ) : null}
+                {perfil?.cidade ? (
+                  <Text style={s.footerContato}>{perfil.cidade}</Text>
+                ) : null}
+              </>
+            ) : null}
+          </View>
           <Text style={s.footerMeta}>
             Orçamento estimado. Valores podem ser ajustados após inspeção presencial.
           </Text>

@@ -6,6 +6,7 @@ import {
   TIPOS_SERVICO,
   type Complexidade,
   type Fator,
+  type PerfilPintor,
   type RascunhoOrcamento,
   type TipoServico,
 } from "@/lib/types";
@@ -73,6 +74,34 @@ function validarRascunho(input: unknown): RascunhoOrcamento | null {
       faixa_preco_max: d.faixa_preco_max,
       valor_final: d.valor_final,
     },
+    nome_cliente:
+      typeof obj.nome_cliente === "string" ? obj.nome_cliente : undefined,
+    observacoes:
+      typeof obj.observacoes === "string" && obj.observacoes.trim()
+        ? obj.observacoes.trim()
+        : undefined,
+    validade_dias:
+      typeof obj.validade_dias === "number" && obj.validade_dias > 0
+        ? obj.validade_dias
+        : undefined,
+    perfil: validarPerfil(obj.perfil),
+  };
+}
+
+function validarPerfil(input: unknown): PerfilPintor | undefined {
+  if (!input || typeof input !== "object") return undefined;
+  const p = input as Record<string, unknown>;
+  return {
+    nome: typeof p.nome === "string" ? p.nome : "",
+    telefone: typeof p.telefone === "string" ? p.telefone : "",
+    email: typeof p.email === "string" ? p.email : "",
+    cidade: typeof p.cidade === "string" ? p.cidade : "",
+    logo_base64:
+      typeof p.logo_base64 === "string" ? p.logo_base64 : undefined,
+    prazo_dias: typeof p.prazo_dias === "number" ? p.prazo_dias : 15,
+    entrada_percentual:
+      typeof p.entrada_percentual === "number" ? p.entrada_percentual : 20,
+    validade_dias: typeof p.validade_dias === "number" ? p.validade_dias : 20,
   };
 }
 

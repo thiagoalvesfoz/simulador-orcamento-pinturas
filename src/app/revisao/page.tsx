@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import BadgeIA from "@/components/BadgeIA";
 import Header from "@/components/Header";
 import { calcularFaixaPreco } from "@/lib/pricing";
-import { carregarOrcamento } from "@/lib/storage";
+import { carregarOrcamento, carregarPerfil } from "@/lib/storage";
 import {
   COMPLEXIDADES,
   COMPLEXIDADES_LABEL,
@@ -31,6 +31,9 @@ export default function RevisaoPage() {
   const [rascunho, setRascunho] = useState<RascunhoOrcamento | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [baixando, setBaixando] = useState(false);
+  const [nomeCliente, setNomeCliente] = useState("");
+  const [observacoes, setObservacoes] = useState("");
+  const [validadeDias, setValidadeDias] = useState(20);
 
   useEffect(() => {
     const carregado = carregarOrcamento();
@@ -40,6 +43,8 @@ export default function RevisaoPage() {
     }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRascunho(carregado);
+    const perfil = carregarPerfil();
+    if (perfil?.validade_dias) setValidadeDias(perfil.validade_dias);
     setCarregando(false);
     toast.success("Orçamento pronto para revisão", { id: "revisao-extraido" });
   }, [router]);
@@ -104,10 +109,17 @@ export default function RevisaoPage() {
     if (!rascunho || baixando) return;
     setBaixando(true);
     try {
+      const perfil = carregarPerfil();
       const resposta = await fetch("/api/gerar-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(rascunho),
+        body: JSON.stringify({
+          ...rascunho,
+          nome_cliente: nomeCliente.trim() || undefined,
+          observacoes: observacoes.trim() || undefined,
+          validade_dias: validadeDias,
+          perfil: perfil ?? undefined,
+        }),
       });
       if (!resposta.ok) throw new Error("Falha ao gerar PDF.");
       const blob = await resposta.blob();
@@ -155,6 +167,16 @@ export default function RevisaoPage() {
               <div className="w-full rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-300">
                 {rascunho.descricao}
               </div>
+            </Campo>
+
+            <Campo label="Nome do cliente">
+              <input
+                type="text"
+                placeholder="Ex: João Silva"
+                value={nomeCliente}
+                onChange={(e) => setNomeCliente(e.target.value)}
+                className="w-full rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
+              />
             </Campo>
 
             <Campo label="Tipo de serviço">
@@ -246,6 +268,32 @@ export default function RevisaoPage() {
                 valor={dados.valor_final}
                 onChange={(v) => atualizar({ valor_final: v })}
               />
+            </div>
+          </section>
+
+          <section className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur sm:p-6">
+            <div className="grid grid-cols-[1fr_auto] gap-4">
+              <Campo label="Observações (opcional)">
+                <textarea
+                  rows={3}
+                  placeholder="Ex: inclui 2 demãos, tinta fornecida pelo cliente..."
+                  value={observacoes}
+                  onChange={(e) => setObservacoes(e.target.value)}
+                  className="w-full resize-none rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
+                />
+              </Campo>
+              <Campo label="Validade (dias)">
+                <input
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={validadeDias}
+                  onChange={(e) =>
+                    setValidadeDias(Math.max(1, Number(e.target.value) || 1))
+                  }
+                  className="w-24 rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
+                />
+              </Campo>
             </div>
           </section>
 

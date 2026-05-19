@@ -51,9 +51,24 @@ export type DadosOrcamento = {
   valor_final: number;
 };
 
+export type PerfilPintor = {
+  nome: string;
+  telefone: string;
+  email: string;
+  cidade: string;
+  logo_base64?: string;
+  prazo_dias: number;
+  entrada_percentual: number;
+  validade_dias: number;
+};
+
 export type RascunhoOrcamento = {
   descricao: string;
   dados: DadosOrcamento;
+  nome_cliente?: string;
+  observacoes?: string;
+  validade_dias?: number;
+  perfil?: PerfilPintor;
 };
 
 export type DadosExtraidos = {
