@@ -27,7 +27,7 @@ const C = {
   zinc500:     "#71717a",
   zinc600:     "#52525b",
   zinc900:     "#18181b",
-  divider:     "rgba(255,255,255,0.08)",
+  divider:     "#27272a",
   textMuted:   "rgba(255,255,255,0.55)",
   textDim:     "rgba(255,255,255,0.40)",
   textBody:    "rgba(255,255,255,0.85)",
@@ -113,7 +113,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 15,
     borderBottomWidth: 1,
     borderBottomColor: C.divider,
-    backgroundColor: "rgba(255,255,255,0.03)",
+    backgroundColor: C.sheetElev,
     fontSize: 9,
     fontFamily: "Helvetica-Bold",
     textTransform: "uppercase",
@@ -190,7 +190,7 @@ const s = StyleSheet.create({
     marginBottom: 10,
   },
   termsGrid: {
-    flexDirection: "row",
+    flexDirection: "column",
     flexWrap: "wrap",
   },
   termItem: {
@@ -257,7 +257,6 @@ const formatDate = (d: Date) =>
 
 const TERMS = [
   "O prazo para finalização dos serviços é de 15 dias úteis.",
-  "Aceitamos parcelamento dos valores em cartão.",
   "Para início do trabalho recebemos 20% do valor antecipado.",
   "Este orçamento tem validade de 20 dias corridos.",
 ];
@@ -284,7 +283,7 @@ export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
         <View style={s.header}>
           <View>
             <Text style={s.headerTitle}>Orçamento</Text>
-            <Text style={s.headerSubtitle}>Pintura Residencial</Text>
+            <Text style={s.headerSubtitle}>Pintura de Alto Padrão</Text>
           </View>
           <View>
             <Text style={s.headerDateLabel}>Emitido em</Text>
