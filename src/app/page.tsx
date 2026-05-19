@@ -34,6 +34,7 @@ export default function Home() {
   const [enviando, setEnviando] = useState(false);
   const [fraseIdx, setFraseIdx] = useState(0);
   const [exemploIdx, setExemploIdx] = useState(0);
+  const [progresso, setProgresso] = useState(0);
 
   useEffect(() => {
     if (!enviando) return;
@@ -41,6 +42,14 @@ export default function Home() {
       setFraseIdx((i) => (i + 1) % FRASES_PENSANDO.length);
     }, 5000);
     return () => clearInterval(interval);
+  }, [enviando]);
+
+  useEffect(() => {
+    if (!enviando) return;
+    const id = setInterval(() => {
+      setProgresso((p) => (p >= 75 ? p : Math.min(75, p + (75 - p) * 0.1)));
+    }, 300);
+    return () => clearInterval(id);
   }, [enviando]);
 
   const [exemploVisivel, setExemploVisivel] = useState(true);
@@ -67,6 +76,7 @@ export default function Home() {
     }
 
     setFraseIdx(0);
+    setProgresso(8);
     setEnviando(true);
     try {
       const resposta = await fetch("/api/analisar", {
@@ -80,7 +90,9 @@ export default function Home() {
       }
 
       const dados = await resposta.json();
+      setProgresso(100);
       salvarOrcamento({ descricao: texto, dados });
+      await new Promise((r) => setTimeout(r, 400));
       router.push("/revisao");
     } catch (err) {
       toast.error(
@@ -89,6 +101,7 @@ export default function Home() {
           : "Não foi possível processar a descrição."
       );
       setEnviando(false);
+      setProgresso(0);
     }
   }
 
@@ -139,31 +152,40 @@ export default function Home() {
               type="submit"
               disabled={enviando}
               aria-live="polite"
-              className="mt-4 flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-brand-400 px-5 py-3.5 text-sm font-semibold text-zinc-950 shadow-lg shadow-brand-400/20 transition hover:bg-brand-300 disabled:cursor-not-allowed disabled:opacity-80"
+              className="mt-4 relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-brand-400 px-5 py-3.5 text-sm font-semibold text-zinc-950 shadow-lg shadow-brand-400/20 transition hover:bg-brand-300 disabled:cursor-not-allowed"
             >
-              {enviando ? (
-                <div className="flex items-center gap-2 fade-in animate-pulse slide-in-from-bottom-1 duration-300">
-                  <Loader2Icon className="h-4 w-4 shrink-0 animate-spin" />
-                  <span key={fraseIdx}>{FRASES_PENSANDO[fraseIdx]}</span>
-                </div>
-              ) : (
-                <>
-                  Começar meu orçamento agora
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-4 w-4"
-                  >
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                    <polyline points="12 5 19 12 12 19" />
-                  </svg>
-                </>
+              {enviando && (
+                <div
+                  aria-hidden
+                  className="absolute inset-y-0 left-0 bg-white/15 transition-[width] duration-700 ease-out"
+                  style={{ width: `${progresso}%` }}
+                />
               )}
+              <span className="relative flex items-center gap-2">
+                {enviando ? (
+                  <div className="flex items-center gap-2 fade-in animate-pulse slide-in-from-bottom-1 duration-300">
+                    <Loader2Icon className="h-4 w-4 shrink-0 animate-spin" />
+                    <span key={fraseIdx}>{FRASES_PENSANDO[fraseIdx]}</span>
+                  </div>
+                ) : (
+                  <>
+                    Começar meu orçamento agora
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-4 w-4"
+                    >
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
+                    </svg>
+                  </>
+                )}
+              </span>
             </button>
 
             <div className="mt-6 border-t border-zinc-800 pt-5">
