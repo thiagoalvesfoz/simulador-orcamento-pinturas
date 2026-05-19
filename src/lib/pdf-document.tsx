@@ -12,194 +12,343 @@ import {
   type RascunhoOrcamento,
 } from "./types";
 
-const styles = StyleSheet.create({
+// Pintor Pro IA palette
+const C = {
+  black:       "#000000",
+  sheetBg:     "#0a0a0a",
+  sheetElev:   "#131316",
+  primary:     "#00B8E6",
+  primaryInk:  "#001218",
+  white:       "#ffffff",
+  zinc100:     "#f4f4f5",
+  zinc200:     "#e4e4e7",
+  zinc300:     "#d4d4d8",
+  zinc400:     "#a1a1aa",
+  zinc500:     "#71717a",
+  zinc600:     "#52525b",
+  zinc900:     "#18181b",
+  divider:     "rgba(255,255,255,0.08)",
+  textMuted:   "rgba(255,255,255,0.55)",
+  textDim:     "rgba(255,255,255,0.40)",
+  textBody:    "rgba(255,255,255,0.85)",
+  termItem:    "rgba(255,255,255,0.70)",
+  invLabel:    "rgba(0,18,24,0.65)",
+  invCurrency: "rgba(0,18,24,0.50)",
+};
+
+const s = StyleSheet.create({
   page: {
-    padding: 48,
+    backgroundColor: C.sheetBg,
+    color: C.zinc100,
     fontSize: 11,
     fontFamily: "Helvetica",
-    color: "#18181b",
   },
+
+  // ── Header ──────────────────────────────────────────────
   header: {
-    borderBottomWidth: 2,
-    borderBottomColor: "#18181b",
-    paddingBottom: 12,
-    marginBottom: 24,
+    backgroundColor: C.black,
+    paddingTop: 42,
+    paddingBottom: 30,
+    paddingHorizontal: 48,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    borderBottomWidth: 1,
+    borderBottomColor: C.divider,
   },
-  title: {
-    fontSize: 22,
+  headerTitle: {
+    fontSize: 38,
     fontFamily: "Helvetica-Bold",
-    marginBottom: 4,
+    color: C.white,
+    lineHeight: 0.95,
+    marginBottom: 5,
   },
-  subtitle: {
+  headerSubtitle: {
+    fontSize: 14,
+    color: C.primary,
+  },
+  headerDateLabel: {
     fontSize: 10,
-    color: "#71717a",
+    color: C.textMuted,
+    textAlign: "right",
   },
-  section: {
-    marginBottom: 18,
+  headerDateValue: {
+    fontSize: 14,
+    fontFamily: "Helvetica-Bold",
+    color: C.white,
+    textAlign: "right",
+    marginTop: 2,
   },
-  sectionTitle: {
-    fontSize: 10,
+
+  // ── Body ────────────────────────────────────────────────
+  body: {
+    paddingHorizontal: 48,
+    paddingTop: 36,
+    paddingBottom: 28,
+    flexGrow: 1,
+  },
+
+  intro: {
+    fontSize: 13,
+    color: C.textBody,
+    lineHeight: 1.45,
+    marginBottom: 28,
+  },
+  introBold: {
+    fontFamily: "Helvetica-Bold",
+    color: C.white,
+  },
+
+  // ── Services list ────────────────────────────────────────
+  servicesCard: {
+    borderWidth: 1,
+    borderColor: C.divider,
+    borderRadius: 4,
+    backgroundColor: C.sheetElev,
+    marginBottom: 20,
+    overflow: "hidden",
+  },
+  servicesHead: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: C.divider,
+    backgroundColor: "rgba(255,255,255,0.03)",
+    fontSize: 9,
     fontFamily: "Helvetica-Bold",
     textTransform: "uppercase",
-    color: "#52525b",
-    marginBottom: 6,
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
+    color: C.primary,
   },
-  paragraph: {
-    fontSize: 11,
+  serviceItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 13,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: C.divider,
+  },
+  serviceItemLast: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 13,
+    paddingHorizontal: 15,
+  },
+  serviceDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: C.primary,
+    marginRight: 12,
+  },
+  serviceText: {
+    fontSize: 12,
+    color: C.zinc100,
+  },
+
+  // ── Investimento ─────────────────────────────────────────
+  investimento: {
+    backgroundColor: C.primary,
+    borderRadius: 10,
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 24,
+  },
+  invLabel: {
+    fontSize: 9,
+    fontFamily: "Helvetica-Bold",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    color: C.invLabel,
+  },
+  invValueRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+  },
+  invCurrency: {
+    fontSize: 14,
+    fontFamily: "Helvetica-Bold",
+    color: C.invCurrency,
+    marginRight: 4,
+  },
+  invValue: {
+    fontSize: 28,
+    fontFamily: "Helvetica-Bold",
+    color: C.primaryInk,
+  },
+
+  // ── Terms ────────────────────────────────────────────────
+  termsTitle: {
+    fontSize: 9,
+    fontFamily: "Helvetica-Bold",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    color: C.textMuted,
+    marginBottom: 10,
+  },
+  termsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  termItem: {
+    width: "50%",
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingLeft: 10,
+    paddingRight: 16,
+    marginBottom: 8,
+    position: "relative",
+  },
+  termDash: {
+    position: "absolute",
+    left: 0,
+    top: 5,
+    width: 5,
+    height: 1,
+    backgroundColor: C.zinc500,
+  },
+  termText: {
+    fontSize: 10,
+    color: C.termItem,
+    lineHeight: 1.45,
+  },
+
+  // ── Footer ───────────────────────────────────────────────
+  footer: {
+    borderTopWidth: 1,
+    borderTopColor: C.divider,
+    paddingTop: 18,
+    paddingBottom: 28,
+    paddingHorizontal: 48,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+  },
+  wordmarkName: {
+    fontSize: 17,
+    fontFamily: "Helvetica-Bold",
+    color: C.white,
+    lineHeight: 1,
+    marginBottom: 4,
+  },
+  wordmarkRole: {
+    fontSize: 9,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    color: C.primary,
+  },
+  footerMeta: {
+    fontSize: 9,
+    color: C.textDim,
+    textAlign: "right",
+    maxWidth: 220,
     lineHeight: 1.5,
   },
-  table: {
-    borderWidth: 1,
-    borderColor: "#e4e4e7",
-    borderRadius: 4,
-  },
-  row: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e4e4e7",
-  },
-  rowLast: {
-    flexDirection: "row",
-  },
-  cellLabel: {
-    flex: 1,
-    padding: 8,
-    backgroundColor: "#fafafa",
-    fontFamily: "Helvetica-Bold",
-    fontSize: 10,
-  },
-  cellValue: {
-    flex: 2,
-    padding: 8,
-    fontSize: 10,
-  },
-  faixa: {
-    backgroundColor: "#fafafa",
-    borderRadius: 4,
-    padding: 12,
-    marginTop: 8,
-  },
-  faixaLabel: {
-    fontSize: 9,
-    color: "#71717a",
-    marginBottom: 2,
-  },
-  faixaValor: {
-    fontSize: 12,
-    fontFamily: "Helvetica-Bold",
-  },
-  total: {
-    backgroundColor: "#18181b",
-    color: "#ffffff",
-    borderRadius: 4,
-    padding: 16,
-    marginTop: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  totalLabel: {
-    fontSize: 12,
-    color: "#ffffff",
-    fontFamily: "Helvetica-Bold",
-  },
-  totalValor: {
-    fontSize: 18,
-    color: "#ffffff",
-    fontFamily: "Helvetica-Bold",
-  },
-  footer: {
-    position: "absolute",
-    bottom: 24,
-    left: 48,
-    right: 48,
-    fontSize: 9,
-    color: "#a1a1aa",
-    textAlign: "center",
-  },
 });
 
-const formatadorBRL = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
+const formatBRL = (n: number) =>
+  n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const formatadorData = new Intl.DateTimeFormat("pt-BR", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
-});
+const formatDate = (d: Date) =>
+  d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+const TERMS = [
+  "O prazo para finalização dos serviços é de 15 dias úteis.",
+  "Aceitamos parcelamento dos valores em cartão.",
+  "Para início do trabalho recebemos 20% do valor antecipado.",
+  "Este orçamento tem validade de 20 dias corridos.",
+];
 
 export function OrcamentoPdf({ rascunho }: { rascunho: RascunhoOrcamento }) {
   const { dados, descricao } = rascunho;
-  const fatoresTexto =
-    dados.fatores.length > 0
-      ? dados.fatores.map((f) => FATORES_LABEL[f]).join(", ")
-      : "Nenhum";
+
+  const serviceItems: string[] = [
+    TIPOS_SERVICO_LABEL[dados.tipo],
+    `Área de ${dados.area_m2} m²`,
+    `Complexidade: ${COMPLEXIDADES_LABEL[dados.complexidade]}`,
+    ...dados.fatores.map((f) => FATORES_LABEL[f]),
+  ];
+
+  // Extract client name from description (best-effort: first proper noun phrase)
+  const clienteMatch = descricao.match(/(?:para|cliente|de)\s+([A-ZÁÉÍÓÚÀÂÊÔÃÕÇ][a-záéíóúàâêôãõç]+(?:\s+[A-ZÁÉÍÓÚÀÂÊÔÃÕÇ][a-záéíóúàâêôãõç]+)*)/u);
+  const cliente = clienteMatch ? clienteMatch[1] : "o(a) cliente";
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Orçamento de Pintura</Text>
-          <Text style={styles.subtitle}>
-            Emitido em {formatadorData.format(new Date())}
+      <Page size="A4" style={s.page}>
+
+        {/* Header */}
+        <View style={s.header}>
+          <View>
+            <Text style={s.headerTitle}>Orçamento</Text>
+            <Text style={s.headerSubtitle}>Pintura Residencial</Text>
+          </View>
+          <View>
+            <Text style={s.headerDateLabel}>Emitido em</Text>
+            <Text style={s.headerDateValue}>{formatDate(new Date())}</Text>
+          </View>
+        </View>
+
+        {/* Body */}
+        <View style={s.body}>
+
+          {/* Intro */}
+          <Text style={s.intro}>
+            Proposta para pintura residencial para a cliente{" "}
+            <Text style={s.introBold}>{cliente}</Text>
+            , conforme escopo descrito abaixo.
+          </Text>
+
+          {/* Services list — no prices */}
+          <View style={s.servicesCard}>
+            <Text style={s.servicesHead}>Serviços inclusos</Text>
+            {serviceItems.map((item, i) => (
+              <View
+                key={i}
+                style={i < serviceItems.length - 1 ? s.serviceItem : s.serviceItemLast}
+              >
+                <View style={s.serviceDot} />
+                <Text style={s.serviceText}>{item}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Investimento */}
+          <View style={s.investimento}>
+            <Text style={s.invLabel}>Investimento</Text>
+            <View style={s.invValueRow}>
+              <Text style={s.invCurrency}>R$</Text>
+              <Text style={s.invValue}>{formatBRL(dados.valor_final)}</Text>
+            </View>
+          </View>
+
+          {/* Terms */}
+          <Text style={s.termsTitle}>Condições</Text>
+          <View style={s.termsGrid}>
+            {TERMS.map((term, i) => (
+              <View key={i} style={s.termItem}>
+                <View style={s.termDash} />
+                <Text style={s.termText}>{term}</Text>
+              </View>
+            ))}
+          </View>
+
+        </View>
+
+        {/* Footer */}
+        <View style={s.footer}>
+          <View>
+            <Text style={s.wordmarkName}>Pintor Pro IA</Text>
+            <Text style={s.wordmarkRole}>Pintura Residencial</Text>
+          </View>
+          <Text style={s.footerMeta}>
+            Orçamento estimado. Valores podem ser ajustados após inspeção presencial.
           </Text>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Descrição do serviço</Text>
-          <Text style={styles.paragraph}>{descricao}</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Detalhes</Text>
-          <View style={styles.table}>
-            <View style={styles.row}>
-              <Text style={styles.cellLabel}>Tipo</Text>
-              <Text style={styles.cellValue}>
-                {TIPOS_SERVICO_LABEL[dados.tipo]}
-              </Text>
-            </View>
-            <View style={styles.row}>
-              <Text style={styles.cellLabel}>Área</Text>
-              <Text style={styles.cellValue}>{dados.area_m2} m²</Text>
-            </View>
-            <View style={styles.row}>
-              <Text style={styles.cellLabel}>Complexidade</Text>
-              <Text style={styles.cellValue}>
-                {COMPLEXIDADES_LABEL[dados.complexidade]}
-              </Text>
-            </View>
-            <View style={styles.rowLast}>
-              <Text style={styles.cellLabel}>Fatores adicionais</Text>
-              <Text style={styles.cellValue}>{fatoresTexto}</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Valor</Text>
-          <View style={styles.faixa}>
-            <Text style={styles.faixaLabel}>Faixa sugerida</Text>
-            <Text style={styles.faixaValor}>
-              {formatadorBRL.format(dados.faixa_preco_min)} —{" "}
-              {formatadorBRL.format(dados.faixa_preco_max)}
-            </Text>
-          </View>
-          <View style={styles.total}>
-            <Text style={styles.totalLabel}>Valor final</Text>
-            <Text style={styles.totalValor}>
-              {formatadorBRL.format(dados.valor_final)}
-            </Text>
-          </View>
-        </View>
-
-        <Text style={styles.footer}>
-          Orçamento estimado. Valores podem ser ajustados após inspeção
-          presencial.
-        </Text>
       </Page>
     </Document>
   );
