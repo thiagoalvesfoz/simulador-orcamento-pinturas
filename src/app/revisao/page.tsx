@@ -185,7 +185,7 @@ export default function RevisaoPage() {
     setProgresso(8);
     try {
       const perfil = carregarPerfil();
-      const numero = gerarNumeroOrcamento();
+      const numero = numeroGerado || gerarNumeroOrcamento();
       const resposta = await fetch("/api/gerar-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -214,17 +214,8 @@ export default function RevisaoPage() {
   }
 
   if (baixado && dados) {
-    const perfil = carregarPerfil();
-    const nomePintor = perfil?.nome?.trim() ?? "";
     const nomeCli = nomeCliente.trim();
     const valor = formatadorBRL.format(dados.valor_final);
-    const textoWa = [
-      `Olá${nomeCli ? ` ${nomeCli}` : ""}! Segue o orçamento ${numeroGerado} no valor de ${valor}.`,
-      nomePintor ? `Qualquer dúvida estou à disposição. — ${nomePintor}` : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
-    const waUrl = `https://wa.me/?text=${encodeURIComponent(textoWa)}`;
 
     async function compartilhar() {
       if (!pdfUrl) return;
@@ -239,7 +230,7 @@ export default function RevisaoPage() {
           if (err instanceof Error && err.name === "AbortError") return;
         }
       }
-      window.open(waUrl, "_blank", "noopener,noreferrer");
+      toast.error("Não foi possível compartilhar. Baixe o PDF e envie manualmente.");
     }
 
     return (
@@ -286,6 +277,18 @@ export default function RevisaoPage() {
                   <p className="text-xs text-zinc-500">Valor final</p>
                   <p className="mt-0.5 text-sm font-bold text-brand-400 tabular-nums">{valor}</p>
                 </div>
+                {dados.fatores.length > 0 && (
+                  <div className="col-span-2">
+                    <p className="text-xs text-zinc-500">Fatores</p>
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      {dados.fatores.map((f) => (
+                        <span key={f} className="rounded-md bg-zinc-800 px-2 py-0.5 text-xs text-zinc-300">
+                          {FATORES_LABEL[f]}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -418,7 +421,11 @@ export default function RevisaoPage() {
 
           <button
             type="button"
-            onClick={() => router.push("/")}
+            onClick={() => {
+              if (window.confirm("Tem certeza? Os dados do orçamento atual serão perdidos.")) {
+                router.push("/");
+              }
+            }}
             className="mb-5 flex items-center gap-1.5 text-xs text-zinc-400 transition hover:text-zinc-200"
           >
             <svg
