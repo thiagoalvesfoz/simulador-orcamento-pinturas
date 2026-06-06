@@ -18,18 +18,16 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import Header from "@/components/Header";
 import { calcularOrcamento, calcularSubtotalItem } from "@/lib/pricing";
 import { CATALOG_BY_ID, TIPO_TO_DEFAULT_BAND } from "@/lib/pricing-catalog";
 import {
-  carregarOrcamento,
   carregarPerfil,
   gerarNumeroOrcamento,
-  limparOrcamento,
-  salvarOrcamento,
   salvarPerfil,
 } from "@/lib/storage";
 import {
@@ -596,8 +594,10 @@ function ItemEditForm({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default function RevisaoPage() {
+function RevisaoInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const orcamentoId = searchParams.get("id");
   const [rascunho, setRascunho] = useState<RascunhoOrcamento | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [baixando, setBaixando] = useState(false);
@@ -614,6 +614,7 @@ export default function RevisaoPage() {
   const [condicoes, setCondicoes] = useState<string[]>([]);
   const [novaCondicao, setNovaCondicao] = useState("");
   const [removingCondIds, setRemovingCondIds] = useState<Set<string>>(new Set());
+  const [userId, setUserId] = useState<string | null>(null);
 
   const condSensors = useSensors(
     useSensor(PointerSensor),
@@ -640,30 +641,33 @@ export default function RevisaoPage() {
   }, [baixando]);
 
   useEffect(() => {
-    const carregado = carregarOrcamento();
-    if (!carregado) {
-      router.replace("/");
-      return;
-    }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setRascunho(carregado);
-    const perfil = carregarPerfil();
-    if (!perfil || !perfil.nome.trim()) setPerfilIncompleto(true);
-     
-    setCondicoes(perfil?.condicoes ?? DEFAULTS_CONDICOES);
-    setCarregando(false);
-  }, [router]);
+    if (!orcamentoId) { router.replace("/"); return; }
 
-  useEffect(() => {
-    if (rascunho) salvarOrcamento(rascunho);
-  }, [rascunho]);
+    Promise.all([
+      fetch(`/api/orcamentos/${orcamentoId}`).then((r) => (r.ok ? r.json() : null)),
+      createClient().auth.getUser(),
+    ]).then(([data, authResult]) => {
+      if (!data) { router.replace("/"); return; }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRascunho({ descricao: data.descricao, dados: data.dados });
+      const uid = authResult.data.user?.id ?? null;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setUserId(uid);
+      const perfil = uid ? carregarPerfil(uid) : null;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (!perfil || !perfil.nome.trim()) setPerfilIncompleto(true);
+      setCondicoes(perfil?.condicoes ?? DEFAULTS_CONDICOES);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCarregando(false);
+    }).catch(() => router.replace("/"));
+  }, [orcamentoId, router]);
 
   useEffect(() => {
     if (step !== 2) return;
-    const perfil = carregarPerfil();
+    const perfil = userId ? carregarPerfil(userId) : null;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPerfilIncompleto(!perfil || !perfil.nome.trim());
-  }, [step]);
+  }, [step, userId]);
 
   const dados = rascunho?.dados;
 
@@ -811,9 +815,9 @@ export default function RevisaoPage() {
     setBaixando(true);
     setProgresso(8);
     try {
-      const perfilBase = carregarPerfil();
+      const perfilBase = userId ? carregarPerfil(userId) : null;
       const perfilFinal = { ...(perfilBase ?? { nome: "", telefone: "", email: "", cidade: "" }), condicoes };
-      if (perfilBase) salvarPerfil(perfilFinal);
+      if (perfilBase && userId) salvarPerfil(userId, perfilFinal);
       const numero = numeroGerado || gerarNumeroOrcamento();
       const resposta = await fetch("/api/gerar-pdf", {
         method: "POST",
@@ -834,6 +838,22 @@ export default function RevisaoPage() {
       setPdfUrl(url);
       setNumeroGerado(numero);
       setBaixado(true);
+
+      // Finaliza o rascunho no DB
+      if (orcamentoId) {
+        fetch(`/api/orcamentos/${orcamentoId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            numero,
+            nomeCliente: nomeCliente.trim(),
+            observacoes: observacoes.trim() || null,
+            dados: rascunho.dados,
+            valorFinal: rascunho.dados.valor_final,
+            status: "finalizado",
+          }),
+        }).catch(() => {/* não crítico */});
+      }
     } catch {
       toast.error("Não foi possível gerar o PDF. Tente novamente.");
     } finally {
@@ -971,7 +991,6 @@ export default function RevisaoPage() {
                 type="button"
                 onClick={() => {
                   if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-                  limparOrcamento();
                   router.push("/");
                 }}
                 className="flex items-center justify-center gap-1.5 px-5 py-2.5 text-sm text-zinc-500 transition hover:text-zinc-300"
@@ -1330,5 +1349,13 @@ export default function RevisaoPage() {
         </div>
       </main>
     </>
+  );
+}
+
+export default function RevisaoPage() {
+  return (
+    <Suspense>
+      <RevisaoInner />
+    </Suspense>
   );
 }

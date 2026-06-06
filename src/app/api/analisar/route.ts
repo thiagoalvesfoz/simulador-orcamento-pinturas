@@ -4,10 +4,17 @@ import { extrairHeuristico } from "@/lib/extract";
 import { calcularOrcamento, calcularSubtotalItem } from "@/lib/pricing";
 import { UNIDADE_POR_TIPO } from "@/lib/types";
 import type { DadosExtraidos, DadosOrcamento, ItemOrcamento } from "@/lib/types";
+import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
+import { orcamentos, profiles } from "@/lib/db/schema";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ erro: "Não autorizado." }, { status: 401 });
+
   let body: { descricao?: unknown };
   try {
     body = await request.json();
@@ -27,7 +34,28 @@ export async function POST(request: Request) {
   const extraido = await extrair(descricao);
   const dados = extraidoParaOrcamento(extraido);
 
-  return NextResponse.json(dados);
+  // Garante linha em profiles antes de inserir FK
+  await db
+    .insert(profiles)
+    .values({
+      id: user.id,
+      nome: (user.user_metadata?.nome as string | undefined) ?? "",
+      email: user.email ?? "",
+    })
+    .onConflictDoNothing();
+
+  const inserted = await db
+    .insert(orcamentos)
+    .values({
+      profileId: user.id,
+      status: "rascunho",
+      descricao,
+      dados,
+      valorFinal: String(dados.valor_final),
+    })
+    .returning({ id: orcamentos.id });
+
+  return NextResponse.json({ id: inserted[0].id, ...dados });
 }
 
 async function extrair(descricao: string): Promise<DadosExtraidos> {

@@ -6,7 +6,6 @@ import { Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
 import BadgeIA from "@/components/BadgeIA";
 import Header from "@/components/Header";
-import { salvarOrcamento } from "@/lib/storage";
 
 const EXEMPLOS = [
   "Preciso pintar uma casa de 70 metros, fazer massa corrida em dois quartos, usar tinta premium, terminar em 3 dias.",
@@ -85,15 +84,19 @@ export default function Home() {
         body: JSON.stringify({ descricao: texto }),
       });
 
+      if (resposta.status === 401) {
+        router.push("/login?next=/");
+        return;
+      }
+
       if (!resposta.ok) {
         throw new Error("Não conseguimos analisar a descrição. Tente novamente.");
       }
 
       const dados = await resposta.json();
       setProgresso(100);
-      salvarOrcamento({ descricao: texto, dados });
       await new Promise((r) => setTimeout(r, 400));
-      router.push("/revisao");
+      router.push(`/revisao?id=${dados.id}`);
     } catch (err) {
       toast.error(
         err instanceof Error

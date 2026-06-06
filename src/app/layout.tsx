@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import BottomNav from "@/components/BottomNav";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -20,6 +21,10 @@ export const metadata: Metadata = {
     "Gere orçamentos profissionais de pintura a partir de uma descrição em texto ou voz.",
 };
 
+export const viewport: Viewport = {
+  viewportFit: "cover",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -30,8 +35,12 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
-      <body className="min-h-full flex flex-col bg-zinc-950 text-zinc-100">
+      <body
+        className="min-h-full flex flex-col bg-zinc-950 text-zinc-100"
+        style={{ paddingBottom: "calc(5rem + env(safe-area-inset-bottom))" }}
+      >
         <TooltipProvider>{children}</TooltipProvider>
+        <BottomNav />
         <Toaster />
       </body>
     </html>

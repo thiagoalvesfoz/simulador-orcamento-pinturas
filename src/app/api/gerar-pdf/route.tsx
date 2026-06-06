@@ -14,6 +14,10 @@ import {
   type ServiceBandId,
   type TipoServico,
 } from "@/lib/types";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
+import { profiles } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 export const runtime = "nodejs";
 
@@ -28,6 +32,33 @@ export async function POST(request: Request) {
   const rascunho = validarRascunho(body);
   if (!rascunho) {
     return jsonError("Dados de orçamento inválidos.", 400);
+  }
+
+  // Injeta logo do Storage (bucket privado) como base64 no perfil
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const rows = await db.select().from(profiles).where(eq(profiles.id, user.id));
+      const logoPath = rows[0]?.logoUrl; // campo DB guarda path
+      if (logoPath && !logoPath.startsWith("http")) {
+        const admin = createAdminClient();
+        const { data: signed } = await admin.storage.from("logos").createSignedUrl(logoPath, 60);
+        if (signed?.signedUrl) {
+          const imgRes = await fetch(signed.signedUrl);
+          if (imgRes.ok) {
+            const buf = await imgRes.arrayBuffer();
+            const mime = imgRes.headers.get("content-type") ?? "image/png";
+            const base64 = `data:${mime};base64,${Buffer.from(buf).toString("base64")}`;
+            if (rascunho.perfil) {
+              rascunho.perfil.logo_base64 = base64;
+            }
+          }
+        }
+      }
+    }
+  } catch {
+    // Logo falhou — PDF gera sem ela
   }
 
   const buffer = await renderToBuffer(<OrcamentoPdf rascunho={rascunho} />);

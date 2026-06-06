@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
+import { createClient } from "@/lib/supabase/client";
 import { carregarPerfil, salvarPerfil } from "@/lib/storage";
 import type { PerfilPintor } from "@/lib/types";
 
@@ -22,18 +24,10 @@ const DEFAULTS: PerfilPintor = {
 const inputCls =
   "w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-base text-white placeholder-zinc-500 outline-none transition focus:border-brand-400 focus:ring-1 focus:ring-brand-400";
 
-function Campo({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function Campo({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-medium text-zinc-400">
-        {label}
-      </label>
+      <label className="text-xs font-medium text-zinc-400">{label}</label>
       {children}
     </div>
   );
@@ -43,43 +37,126 @@ export default function PerfilPage() {
   const router = useRouter();
   const [perfil, setPerfil] = useState<PerfilPintor>(DEFAULTS);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoPath, setLogoPath] = useState<string | null>(null); // path no Storage (salvo no DB)
+  const [novoArquivoLogo, setNovoArquivoLogo] = useState<File | null>(null);
+  const [salvando, setSalvando] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const saved = carregarPerfil();
-    if (saved) {
+    createClient().auth.getUser().then(({ data: authData }) => {
+      const uid = authData.user?.id ?? null;
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPerfil(saved);
-      if (saved.logo_base64) setLogoPreview(saved.logo_base64);
-    }
+      setUserId(uid);
+
+      // Carrega localStorage imediatamente (rápido)
+      if (uid) {
+        const local = carregarPerfil(uid);
+        if (local) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setPerfil(local);
+          if (local.logo_base64) setLogoPreview(local.logo_base64);
+        }
+      }
+
+      // Sobrescreve com dados do DB se disponível
+      fetch("/api/perfil")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((dbData) => {
+          if (!dbData) return;
+          const fromDb: PerfilPintor = {
+            nome: dbData.nome ?? "",
+            telefone: dbData.telefone ?? "",
+            email: dbData.email ?? "",
+            cidade: dbData.cidade ?? "",
+            condicoes: dbData.condicoes ?? DEFAULTS.condicoes,
+            logo_base64: undefined,
+          };
+          setPerfil(fromDb);
+          if (dbData.logoUrl) setLogoPreview(dbData.logoUrl);
+          if (dbData.logoPath) setLogoPath(dbData.logoPath);
+        })
+        .catch(() => {/* usa local */});
+    });
   }, []);
 
   function set<K extends keyof PerfilPintor>(field: K, value: PerfilPintor[K]) {
     setPerfil((prev) => ({ ...prev, [field]: value }));
   }
 
+  function mascaraTelefone(valor: string): string {
+    const d = valor.replace(/\D/g, "").slice(0, 11);
+    if (d.length === 0) return "";
+    if (d.length <= 2) return `(${d}`;
+    if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+    if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  }
+
   function aoSelecionarLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setNovoArquivoLogo(file);
     const reader = new FileReader();
     reader.onload = (ev) => {
       const base64 = ev.target?.result as string;
       setLogoPreview(base64);
-      setPerfil((prev) => ({ ...prev, logo_base64: base64 }));
     };
     reader.readAsDataURL(file);
   }
 
   function removerLogo() {
     setLogoPreview(null);
+    setLogoPath(null);
+    setNovoArquivoLogo(null);
     setPerfil((prev) => ({ ...prev, logo_base64: undefined }));
     if (fileRef.current) fileRef.current.value = "";
   }
 
-  function aoSalvar(e: React.FormEvent) {
+  async function aoSalvar(e: React.FormEvent) {
     e.preventDefault();
-    salvarPerfil(perfil);
-    toast.success("Perfil salvo com sucesso!");
+    setSalvando(true);
+    try {
+      // Upload do logo se um novo arquivo foi selecionado
+      let currentPath = logoPreview ? logoPath : null;
+      if (novoArquivoLogo) {
+        const form = new FormData();
+        form.append("file", novoArquivoLogo);
+        const res = await fetch("/api/perfil/logo", { method: "POST", body: form });
+        if (!res.ok) throw new Error("Falha ao enviar logo.");
+        const { url, path } = await res.json() as { url: string; path: string };
+        setLogoPreview(url);
+        setLogoPath(path);
+        currentPath = path;
+      }
+
+      // Salva no DB — logoPath é o path no Storage (ou null se logo removida)
+      await fetch("/api/perfil", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nome: perfil.nome,
+          telefone: perfil.telefone,
+          email: perfil.email,
+          cidade: perfil.cidade,
+          condicoes: perfil.condicoes,
+          logoPath: currentPath,
+        }),
+      });
+
+      // Cache local (sem base64 — evita localStorage pesado)
+      if (userId) {
+        const perfilLocal: PerfilPintor = { ...perfil, logo_base64: undefined };
+        salvarPerfil(userId, perfilLocal);
+      }
+      setNovoArquivoLogo(null);
+
+      toast.success("Perfil salvo com sucesso!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao salvar perfil.");
+    } finally {
+      setSalvando(false);
+    }
   }
 
   return (
@@ -96,10 +173,8 @@ export default function PerfilPage() {
             </p>
           </header>
 
-          
-
           <form onSubmit={aoSalvar} className="space-y-4">
-{/* Logo */}
+            {/* Logo */}
             <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur sm:p-6">
               <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-zinc-400">
                 Logo
@@ -170,14 +245,23 @@ export default function PerfilPage() {
                     onChange={(e) => set("nome", e.target.value)}
                   />
                 </Campo>
+                <Campo label="E-mail">
+                  <input
+                    className={inputCls}
+                    type="email"
+                    placeholder="seuemail@exemplo.com"
+                    value={perfil.email}
+                    onChange={(e) => set("email", e.target.value)}
+                  />
+                </Campo>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Campo label="Telefone / WhatsApp">
                     <input
                       className={inputCls}
                       type="tel"
                       placeholder="(11) 99999-9999"
-                      value={perfil.telefone}
-                      onChange={(e) => set("telefone", e.target.value)}
+                      value={mascaraTelefone(perfil.telefone)}
+                      onChange={(e) => set("telefone", e.target.value.replace(/\D/g, "").slice(0, 11))}
                     />
                   </Campo>
                   <Campo label="Cidade">
@@ -190,34 +274,23 @@ export default function PerfilPage() {
                     />
                   </Campo>
                 </div>
-                <Campo label="E-mail">
-                  <input
-                    className={inputCls}
-                    type="email"
-                    placeholder="seuemail@exemplo.com"
-                    value={perfil.email}
-                    onChange={(e) => set("email", e.target.value)}
-                  />
-                </Campo>
-
               </div>
             </section>
-
-            
 
             <div className="flex flex-col-reverse gap-3 sm:flex-row">
               <button
                 type="button"
-                onClick={() => window.history.length > 1 ? router.back() : router.push("/")}
+                onClick={() => router.back()}
                 className="flex-1 rounded-xl border border-zinc-700 bg-transparent px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-zinc-800"
               >
                 Voltar
               </button>
               <button
                 type="submit"
-                className="flex-1 rounded-xl bg-brand-400 px-5 py-3.5 text-sm font-bold text-zinc-950 transition hover:bg-brand-300"
+                disabled={salvando}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-400 px-5 py-3.5 text-sm font-bold text-zinc-950 transition hover:bg-brand-300 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                Salvar meu perfil
+                {salvando ? <Loader2Icon className="h-4 w-4 animate-spin" /> : "Salvar meu perfil"}
               </button>
             </div>
           </form>

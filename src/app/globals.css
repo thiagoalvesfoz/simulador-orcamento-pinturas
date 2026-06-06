@@ -163,4 +163,13 @@ body {
   button, a, [role="button"], label[for], select {
     cursor: pointer;
   }
+  dialog {
+    margin: auto;
+    padding: 0;
+    border: none;
+    background: transparent;
+  }
+  dialog:not([open]) {
+    display: none;
+  }
 }

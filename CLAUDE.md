@@ -39,16 +39,25 @@ Forçar provedor com `AI_PROVIDER=gemini|openai`. Sem nenhuma chave, o sistema c
 
 1. `src/app/page.tsx` — usuário digita ou dita a descrição (componente `VozRecorder` usa Web Speech API). POST para `/api/analisar`.
 2. `src/app/api/analisar/route.ts` — tenta `extrairComIA` (Gemini ou OpenAI conforme chave disponível); em qualquer falha cai em `extrairHeuristico`. Em seguida chama `calcularFaixaPreco`. Devolve um `DadosOrcamento` completo. A página salva `{ descricao, dados }` em `sessionStorage` via `salvarOrcamento` e navega para `/revisao`.
-3. `src/app/revisao/page.tsx` — fluxo de **dois passos na mesma rota**. Passo 1: editar tipo/área/complexidade/fatores, recalcular faixa em tempo real, ajustar `valor_final` via slider. Passo 2: inserir nome do cliente e observações, gerar PDF (POST para `/api/gerar-pdf`). Após geração, exibe tela de sucesso com download (desktop) ou compartilhamento nativo via Web Share API (mobile) — sem navegar para outra rota.
+3. `src/app/revisao/page.tsx` — fluxo de **dois passos na mesma rota**. Passo 1: editar variante do serviço (`serviceBandId`), área/quantidade, complexidade, fatores de execução, estado da superfície, patologias, preparações e ocupação; recalcular em tempo real; ajustar `valor_final` via slider. Alertas de atenção (infiltração ativa, estado crítico, trinca profunda) exibidos acima da lista. Passo 2: inserir nome do cliente, observações e condições do orçamento (drag-and-drop, carregadas do perfil como defaults), gerar PDF. Após geração, exibe tela de sucesso com download (desktop) ou compartilhamento nativo via Web Share API (mobile).
 4. `src/app/orcamento/page.tsx` — **redirect stub**: redireciona para `/` imediatamente. Rota legada mantida para não quebrar bookmarks.
 5. `src/app/api/gerar-pdf/route.tsx` — valida o body com guards e renderiza o componente `OrcamentoPdf` via `renderToBuffer`. Precisa ser `.tsx` (usa JSX) e `runtime = "nodejs"` (o renderer não roda em edge).
-6. `src/app/perfil/page.tsx` — formulário de identidade do pintor (nome, telefone, e-mail, cidade, logo, condições do orçamento com drag-and-drop). Dados salvos em `localStorage` via `salvarPerfil` e lidos em `/revisao` no momento de gerar o PDF.
+6. `src/app/perfil/page.tsx` — formulário de identidade do pintor (nome, telefone, e-mail, cidade, logo). Dados salvos em `localStorage` via `salvarPerfil`. As condições do orçamento são editadas diretamente no Passo 2 de `/revisao` (carregadas do perfil e salvas de volta ao gerar o PDF).
 
-**Cálculo da faixa de preço** (`src/lib/pricing.ts`): `preco_base_m2[tipo] × area × multiplicador[complexidade] × (1 + Σ acréscimos[fatores])`, com ±15% para os limites min/max. Se mudar as tabelas, lembre que o cálculo roda **tanto no servidor** (`/api/analisar`) **quanto no client** (`/revisao` recalcula durante a edição) — manter a função pura é importante.
+**Cálculo da faixa de preço** (`src/lib/pricing.ts` + `src/lib/pricing-catalog.ts`): modelo de interpolação por faixa de serviço. Cada `ServiceBandId` tem `{ min, max }` em R$/m² ou R$/un. O preço unitário é `band.min + posicaoFinal × (band.max - band.min)`, onde `posicaoFinal ∈ [0,1]` é a soma de scores de complexidade, estado da superfície, patologias, preparações e ocupação, com caps por grupo. Fatores de execução (`altura_alta`, `acesso_dificil`) aplicam multiplicadores separados (max 1.50×). O cálculo roda **tanto no servidor** (`/api/analisar`) **quanto no client** (`/revisao` recalcula em tempo real) — manter as funções puras é essencial.
 
-**Extração** (todas devolvem o mesmo shape `DadosExtraidos`, sem os campos de preço — eles vêm do `pricing`):
-- `extract.ts` — heurística por regex (fallback sem custo)
-- `extract-ai.ts` — **selector**: detecta o provedor (`AI_PROVIDER` explícito → presença de chave) e delega. Contém o `SYSTEM_PROMPT` único compartilhado.
+Campos ricos de superfície extraídos pela IA e pela heurística:
+- `estado_superficie` — `EstadoSuperficie`: excelente / boa / regular / ruim / critica
+- `patologias` — `Patologia[]`: trincas, infiltrações, mofo, eflorescência, ferrugem, etc.
+- `preparacoes` — `Preparacao[]`: massa corrida, lixamento, impermeabilizante, etc.
+- `ocupacao` — `Ocupacao`: vazio / parcialmente_mobiliado / mobiliado
+- `serviceBandId` — `ServiceBandId`: variante específica do serviço (ex. `pintura_completa_interna`)
+
+`PricingExplicacao` (retornada em cada `ItemOrcamento.explicacao`) contém o audit trail completo: band usada, posição base/final, fatores aplicados com scores individuais, alertas de atenção.
+
+**Extração** (todas devolvem `DadosExtraidos` com `ItemExtraido[]` — inclui todos os campos ricos além do básico):
+- `extract.ts` — heurística por regex; detecta patologias, preparações, estado da superfície, ocupação e `serviceBandId`
+- `extract-ai.ts` — **selector**: detecta o provedor (`AI_PROVIDER` explícito → presença de chave) e delega. Contém o `SYSTEM_PROMPT` único compartilhado, que instrui a IA a preencher todos os campos ricos.
 - `extract-ai-gemini.ts` — Google Gemini com `responseSchema` (`@google/genai`)
 - `extract-ai-openai.ts` — OpenAI com `response_format: json_schema, strict: true`
 
@@ -68,7 +77,7 @@ Qualquer feature que precise de histórico precisará adicionar um banco.
 
 ## Roadmap (status)
 
-Etapas 1–6 do documento de requisitos estão implementadas.
+Etapas 1–6 do documento de requisitos estão implementadas. Motor de precificação por faixas (pricing-catalog + campos ricos de superfície) implementado e integrado à UI de revisão.
 
 **Pós-MVP planejado (em ordem):**
 1. Banco de dados + histórico de orçamentos

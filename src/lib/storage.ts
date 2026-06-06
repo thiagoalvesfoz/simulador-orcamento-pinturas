@@ -1,40 +1,23 @@
-import type { PerfilPintor, RascunhoOrcamento } from "./types";
+import type { PerfilPintor } from "./types";
 
-const STORAGE_KEY = "orcamento_atual";
-const PERFIL_KEY = "perfil_pintor";
+const PERFIL_KEY = (userId: string) => `perfil_pintor_${userId}`;
 
-export function salvarOrcamento(rascunho: RascunhoOrcamento): void {
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(rascunho));
+export function salvarPerfil(userId: string, perfil: PerfilPintor): void {
+  localStorage.setItem(PERFIL_KEY(userId), JSON.stringify(perfil));
 }
 
-export function carregarOrcamento(): RascunhoOrcamento | null {
-  const raw = sessionStorage.getItem(STORAGE_KEY);
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed?.dados?.itens)) return null;
-    return parsed as RascunhoOrcamento;
-  } catch {
-    return null;
-  }
-}
-
-export function limparOrcamento(): void {
-  sessionStorage.removeItem(STORAGE_KEY);
-}
-
-export function salvarPerfil(perfil: PerfilPintor): void {
-  localStorage.setItem(PERFIL_KEY, JSON.stringify(perfil));
-}
-
-export function carregarPerfil(): PerfilPintor | null {
-  const raw = localStorage.getItem(PERFIL_KEY);
+export function carregarPerfil(userId: string): PerfilPintor | null {
+  const raw = localStorage.getItem(PERFIL_KEY(userId));
   if (!raw) return null;
   try {
     return JSON.parse(raw) as PerfilPintor;
   } catch {
     return null;
   }
+}
+
+export function limparPerfilCache(userId: string): void {
+  localStorage.removeItem(PERFIL_KEY(userId));
 }
 
 export function gerarNumeroOrcamento(): string {
