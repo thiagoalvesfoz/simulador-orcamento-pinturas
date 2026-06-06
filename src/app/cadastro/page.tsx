@@ -46,7 +46,7 @@ export default function CadastroPage() {
       router.push("/");
       router.refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao criar conta.");
+      toast.error("Erro ao criar conta. Verifique os dados e tente novamente.");
       setCarregando(false);
     }
   }

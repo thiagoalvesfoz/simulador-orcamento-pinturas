@@ -28,7 +28,7 @@ function LoginForm() {
       router.push(next);
       router.refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "E-mail ou senha incorretos.");
+      toast.error("E-mail ou senha incorretos.");
       setCarregando(false);
     }
   }

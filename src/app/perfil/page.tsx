@@ -153,7 +153,7 @@ export default function PerfilPage() {
 
       toast.success("Perfil salvo com sucesso!");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao salvar perfil.");
+      toast.error("Erro ao salvar perfil. Tente novamente.");
     } finally {
       setSalvando(false);
     }

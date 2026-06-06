@@ -98,11 +98,7 @@ export default function Home() {
       await new Promise((r) => setTimeout(r, 400));
       router.push(`/revisao?id=${dados.id}`);
     } catch (err) {
-      toast.error(
-        err instanceof Error
-          ? err.message
-          : "Não foi possível processar a descrição."
-      );
+      toast.error("Não foi possível processar a descrição. Tente novamente.");
       setEnviando(false);
       setProgresso(0);
     }
