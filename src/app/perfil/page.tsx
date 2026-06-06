@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
@@ -33,8 +33,10 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-export default function PerfilPage() {
+function PerfilContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const onboarding = searchParams.get("onboarding") === "1";
   const [perfil, setPerfil] = useState<PerfilPintor>(DEFAULTS);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoPath, setLogoPath] = useState<string | null>(null); // path no Storage (salvo no DB)
@@ -164,6 +166,15 @@ export default function PerfilPage() {
       <Header />
       <main className="flex flex-1 flex-col items-center px-4 py-8 sm:py-10">
         <div className="w-full max-w-xl">
+          {onboarding && (
+            <div className="mb-6 rounded-2xl border border-brand-400/30 bg-brand-400/10 px-5 py-4 text-sm text-brand-300">
+              <p className="font-semibold">Bem-vindo ao Pintor Pro IA!</p>
+              <p className="mt-0.5 text-brand-400/80">
+                Preencha seus dados antes de gerar o primeiro orçamento. Eles aparecem em todos os PDFs enviados aos seus clientes.
+              </p>
+            </div>
+          )}
+
           <header className="mb-8 text-center">
             <h2 className="text-3xl font-extrabold tracking-tight text-white">
               Sua identidade profissional
@@ -297,5 +308,13 @@ export default function PerfilPage() {
         </div>
       </main>
     </>
+  );
+}
+
+export default function PerfilPage() {
+  return (
+    <Suspense>
+      <PerfilContent />
+    </Suspense>
   );
 }

@@ -32,6 +32,7 @@ export async function GET() {
       cidade: "",
       condicoes: [],
       logoUrl: null,
+      novoUsuario: true,
     });
   }
 
@@ -49,8 +50,9 @@ export async function GET() {
     ...profile,
     nome: profile.nome || authNome,
     email: profile.email || authEmail,
-    logoUrl: logoSignedUrl,          // signed URL para preview (expira em 1h)
-    logoPath: profile.logoUrl ?? null, // path bruto para reenviar no PUT
+    logoUrl: logoSignedUrl,
+    logoPath: profile.logoUrl ?? null,
+    novoUsuario: false,
   });
 }
 

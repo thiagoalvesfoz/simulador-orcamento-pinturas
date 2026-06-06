@@ -480,9 +480,10 @@ function ItemEditForm({
           <input
             type="number"
             min={1}
+            max={unidade === "m2" ? 9999 : 999}
             step={unidade === "m2" ? "0.5" : "1"}
             value={quantidade}
-            onChange={(e) => setQuantidade(Math.max(1, Number(e.target.value) || 0))}
+            onChange={(e) => setQuantidade(Math.min(unidade === "m2" ? 9999 : 999, Math.max(1, Number(e.target.value) || 1)))}
             className="w-full rounded-xl border border-zinc-700 bg-zinc-950/70 px-4 py-3 text-base text-zinc-100 outline-none transition focus:border-brand-400/60 focus:ring-2 focus:ring-brand-400/20"
           />
         </Campo>
